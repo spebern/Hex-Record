@@ -409,7 +409,7 @@ Hex::Record - manipulate intel and srec hex records
     # every single byte that is not found is returned as undef
     my $bytes_ref = $hex->get( 0x100, 10 );
 
-    # remove 100 bytes starting at address 0x100
+    # remove 100 bytes strting at address 0x100
     $hex_record->remove( 0x100, 10 );
 
     # write/overwrite 3 bytes starting at address 0x100
@@ -434,9 +434,9 @@ Manipulate intel/srec hex files.
 =item C<get( $from, $count )>
 
 Returns $count hex bytes in array reference starting at address $from.
-If hex byte is not found, undef instead.
+If byte is not found, undef instead.
 
-    [ 'AA', '00', undef, undef, 'BC', undef ]
+C<[ 'AA', '00', undef, undef, 'BC', undef ]>
 
 =item C<remove( $from, $count )>
 
