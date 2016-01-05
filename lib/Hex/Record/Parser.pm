@@ -113,7 +113,7 @@ Hex::Record::Parser - parse intel and srec hex records
 
 =head1 SYNOPSIS
 
-    use Hex::Parser qw(parse_intel_hex parse_srec_hex);
+    use Hex::Record::Parser qw(parse_intel_hex parse_srec_hex);
 
     # for intel hex record
     my $hex_record = parse_intel_hex( 'intel.hex' );

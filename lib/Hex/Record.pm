@@ -400,7 +400,7 @@ Hex::Record - manipulate intel and srec hex records
 
 =head1 SYNOPSIS
 
-    use Hex::Parser qw(parse_intel_hex parse_srec_hex);
+    use Hex::Record::Parser qw(parse_intel_hex parse_srec_hex);
 
     # get hex object from the parser
     my $hex_record = parse_intel_hex( 'intel.hex' );
