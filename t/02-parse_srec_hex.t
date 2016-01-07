@@ -4,11 +4,14 @@ use Test::More;
 BEGIN { plan tests => 8 }
 use Test::Warn;
 use Hex::Record::Parser qw(parse_srec_hex);
-use File::Basename;
 
 my ($srec_hex_string, $hex_parts_expected, $hex);
 
-my $dir = dirname(__FILE__) . '/hex_files/srec/';
+$srec_hex_string = <<'END_HEX_RECORD';
+S10C000000010203040506070809C6
+S10C000A101112131415161718191C
+S10C00142021222324252627282972
+END_HEX_RECORD
 
 $hex_parts_expected = [
     [
@@ -21,19 +24,35 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_srec_hex( $dir . 'simple.hex' );
+$hex = parse_srec_hex( $srec_hex_string );
 
 is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
     'parsed simple srec hex correctly');
 
-$hex = parse_srec_hex( $dir . 'unordered.hex' );
+
+$srec_hex_string = <<'END_HEX_RECORD';
+S10C00142021222324252627282972
+S10C000A101112131415161718191C
+S10C000000010203040506070809C6
+END_HEX_RECORD
+
+
+$hex = parse_srec_hex( $srec_hex_string );
 
 is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
     'parsed simple srec hex in wrong order correctly');
+
+
+$srec_hex_string = <<'END_HEX_RECORD';
+S10C000000010203040506070809C6
+S10C0009101112131415161718191D
+S10C00142021222324252627282972
+END_HEX_RECORD
+
 
 $hex_parts_expected = [
     [
@@ -52,7 +71,7 @@ $hex_parts_expected = [
 ];
 
 warning_is
-    { $hex = parse_srec_hex( $dir . 'simple_overwrite.hex' ) }
+    { $hex = parse_srec_hex( $srec_hex_string ) }
     "colliding parts: 0 .. 10 with part: 9 .. 19 ... overwriting",
     "warned of colliding parts";
 
@@ -60,6 +79,12 @@ is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
     'parsed srec hex with simple overwrite, two parts');
+
+$srec_hex_string = <<'END_HEX_RECORD';
+S10C000000010203040506070809C6
+S10C00031011121314151617181923
+S10C00052021222324252627282981
+END_HEX_RECORD
 
 $hex_parts_expected = [
     [
@@ -72,7 +97,7 @@ $hex_parts_expected = [
 ];
 
 warnings_are
-    { $hex = parse_srec_hex( $dir . 'three_parts_overwrite.hex' ) }
+    { $hex = parse_srec_hex( $srec_hex_string ) }
     [ "colliding parts: 0 .. 10 with part: 3 .. 13 ... overwriting",
       "colliding parts: 0 .. 13 with part: 5 .. 15 ... overwriting", ],
     "warned of colliding parts";
@@ -81,6 +106,12 @@ is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
     'parsed srec hex with simple overwrite, two parts');
+    
+$srec_hex_string = <<'END_HEX_RECORD';
+S20C010000FFFFFFFFFFFFFFFFFF33C8
+S20CFF000100112233445566778899F6
+S20C10000A99887766554433221100DC
+END_HEX_RECORD
 
 $hex_parts_expected = [
     [
@@ -103,12 +134,18 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_srec_hex( $dir . '24_bit_addr.hex' );
+$hex = parse_srec_hex( $srec_hex_string );
 
 is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
     'parsed srec hex with 24 bit addresses correctly');
+
+$srec_hex_string = <<'END_HEX_RECORD';
+S30C01000001FFFFFFFFFFFFFFFFFF33C7
+S30CFF00010100112233445566778899F5
+S30C10000A0F99887766554433221100CD
+END_HEX_RECORD
 
 $hex_parts_expected = [
     [
@@ -131,7 +168,7 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_srec_hex( $dir . '32_bit_addr.hex' );
+$hex = parse_srec_hex( $srec_hex_string );
 
 is_deeply(
     $hex->{_hex_parts},

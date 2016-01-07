@@ -66,14 +66,11 @@ S3 | 0E | FFFFFF00 | 00 11 22 33 44 55 66 77 88 99 | F7
 S3 | 05 | FFFFFF0A | 00                            | F3
 END_HEX
 
-my $srec_hex;
-open my $fh, '>', \$srec_hex || die "could not open variable: $!";
-
 $srec_hex_string_expected =~ s{[^\S\n]}{}xmsg;
 $srec_hex_string_expected =~ s{\|}{}xmsg;
 
 $srec_hex_string_expected =~ s{[\s\|]+}{};
 
-$hex->as_srec_hex(10, $fh);
-is( $srec_hex, $srec_hex_string_expected, 'dumped correctly as srec hex' );
+my $srec_hex_string = $hex->as_srec_hex(10);
+is( $srec_hex_string, $srec_hex_string_expected, 'dumped correctly as srec hex' );
 

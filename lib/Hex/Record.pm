@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub new {
     my ( $class, %args  ) = @_;
@@ -190,8 +190,9 @@ sub remove {
 }
 
 sub as_intel_hex {
-    my ( $self, $bytes_hex_a_line, $fh ) = @_;
+    my ($self, $bytes_hex_a_line) = @_;
 
+    my $intel_hex_string = '';
     for ( my $hex_part_i = 0; $hex_part_i < @{ $self->{_hex_parts} }; $hex_part_i++ ){
         my $hex_part = $self->{_hex_parts}->[$hex_part_i];
 
@@ -207,26 +208,24 @@ sub as_intel_hex {
 
             if ( $cur_high_addr_hex ne $addr_high_hex ){
                 $cur_high_addr_hex = $addr_high_hex;
-                print $fh _intel_hex_line_of( '0000', 4, [ unpack '(A2)*', $cur_high_addr_hex ] );
+                $intel_hex_string .=  _intel_hex_line_of( '0000', 4, [ unpack '(A2)*', $cur_high_addr_hex ] );
             }
 
             if ( ($slice_i + 1) * $bytes_hex_a_line <=  $#{$hex_part->[1]}){
-                print $fh _intel_hex_line_of(
+                $intel_hex_string .= _intel_hex_line_of(
                     $addr_low_hex, 0,
                     [ @{$hex_part->[1]}[ $slice_i * $bytes_hex_a_line .. ($slice_i + 1) * $bytes_hex_a_line - 1 ] ]
                 );
             }
             else {
-                print $fh _intel_hex_line_of(
+                $intel_hex_string .= _intel_hex_line_of(
                     $addr_low_hex, 0, [ @{$hex_part->[1]}[ $slice_i * $bytes_hex_a_line .. $#{$hex_part->[1]} ] ]
                 );
             }
         }
     }
-
-    # eof hex file
-    print $fh ":00000001FF\n";
-    return;
+                               # intel hex eof
+    return $intel_hex_string . ":00000001FF\n";
 }
 
 sub _intel_hex_line_of {
@@ -242,7 +241,7 @@ sub _intel_hex_line_of {
     $sum = substr( sprintf( '%02X', $sum ), -2 );
 
     my $checksum_hex = sprintf '%02X', ( hex $sum ^ 255 ) + 1;
-    $checksum_hex    = '00' if $checksum_hex eq '100';
+    $checksum_hex    = '00' if length $checksum_hex != 2;
 
     return join '',
         (':',
@@ -256,8 +255,9 @@ sub _intel_hex_line_of {
 }
 
 sub as_srec_hex {
-    my ( $self, $bytes_hex_a_line, $fh ) = @_;
+    my ($self, $bytes_hex_a_line) = @_;
 
+    my $srec_hex_string = '';
     for ( my $hex_part_i = 0; $hex_part_i < @{ $self->{_hex_parts} }; $hex_part_i++ ){
         my $hex_part = $self->{_hex_parts}->[$hex_part_i];
 
@@ -268,19 +268,21 @@ sub as_srec_hex {
             my $total_addr = $start_addr + $slice_i*$bytes_hex_a_line;
 
             if ( ($slice_i + 1) * $bytes_hex_a_line <=  $#{$hex_part->[1]}){
-                print $fh _srec_hex_line_of(
+                $srec_hex_string .= _srec_hex_line_of(
                     $total_addr,
                     [ @{$hex_part->[1]}[ $slice_i * $bytes_hex_a_line .. ($slice_i + 1) * $bytes_hex_a_line - 1 ] ]
                 );
             }
             else {
-                print $fh _srec_hex_line_of(
+                $srec_hex_string .= _srec_hex_line_of(
                     $total_addr,
                     [ @{$hex_part->[1]}[ $slice_i * $bytes_hex_a_line .. $#{$hex_part->[1]} ] ]
                 );
             }
         }
     }
+
+    return $srec_hex_string;
 }
 
 sub _srec_hex_line_of {
@@ -320,7 +322,7 @@ sub _srec_hex_line_of {
     $sum = substr( sprintf( '%02X', $sum ), -2 );
 
     my $checksum_hex = sprintf '%02X', (hex $sum ^ 255);
-    $checksum_hex    = '00' if $checksum_hex eq '100';
+    $checksum_hex    = '00' if length $checksum_hex != 2;
 
     return join '',
         ("S$type",
@@ -403,7 +405,7 @@ Hex::Record - manipulate intel and srec hex records
     use Hex::Record::Parser qw(parse_intel_hex parse_srec_hex);
 
     # get hex object from the parser
-    my $hex_record = parse_intel_hex( 'intel.hex' );
+    my $hex_record = parse_intel_hex( $intel_hex_record_as_string );
 
     # get 100 bytes ( hex format ) starting at address 0x100
     # every single byte that is not found is returned as undef
@@ -417,11 +419,11 @@ Hex::Record - manipulate intel and srec hex records
 
     # dump as intel hex ( will use extended linear addresses for offset )
     # maximum of 10 bytes in data field
-    $hex_record->as_intel_hex( 10, $file_handle );
+    my $intel_hex_string = $hex_record->as_intel_hex(10);
 
     # dump as srec hex ( always tries to use smallest address )
     # maximum of 10 bytes in data field
-    $hex_record->as_screc_hex( 10, $file_handle );
+    my $srec_hex_string = $hex_record->as_screc_hex(10);
 
 =head1 DESCRIPTION
 
@@ -446,15 +448,16 @@ Removes $count bytes starting at address $from.
 
 (Over)writes bytes starting at address $from with bytes in $bytes_ref.
 
-=item C<as_intel_hex( $bytes_hex_a_line, $file_handle )>
+=item C<as_intel_hex( $bytes_hex_a_line )>
 
-Writes data as intel hex into file hanlde. Maximum of $hytes_hex_a_line in data field.
+Returns a string containing hex bytes formated as intel hex.
 Extended linear addresses as offset are used if needed.
 Extended segment addresses are not supported.
 
-=item C<as_srec_hex( $bytes_hex_a_line, $file_handle )>
+=item C<as_srec_hex( $bytes_hex_a_line )>
 
-Writes data as srec into file hanlde. Maximum of $hytes_hex_a_line in data field.
+Returns a string containing hex bytes formated as srec hex.
+Maximum of $hytes_hex_a_line in data field.
 Tries to use the smallest address field.
 
 =back

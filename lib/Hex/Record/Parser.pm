@@ -8,20 +8,18 @@ our @EXPORT_OK = qw(
     parse_intel_hex
     parse_srec_hex);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Hex::Record;
 
 sub parse_intel_hex {
-    my ( $file ) = @_;
-
-    open(my $fh, '<', $file) || die "could not open $file: $!";
+    my ( $hex_string ) = @_;
 
     my $hex           = Hex::Record->new;
     my $addr_high_dec = 0;
 
     my @hex_parts;
-    while ( my $line = <$fh> ){
+    for my $line (split m{\n\r?}, $hex_string) {
         $line =~ m{
 		  : # intel hex start
 		   [[:xdigit:]]{2}  # bytecount
@@ -69,14 +67,12 @@ my %_address_length_of_srec_type = (
 );
 
 sub parse_srec_hex {
-    my ( $file ) = @_;
-
-    open my $fh, '<', $file || die "could not open file: $!";
+    my ( $hex_string ) = @_;
 
     my $hex = Hex::Record->new;
 
     my @hex_parts;
-    while ( my $line = <$fh> ){
+    for my $line (split m{\n\r?}, $hex_string) {
         next unless substr( $line, 0, 1 ) =~ m{s}i;
 
         my $type = substr $line, 1, 1;
@@ -116,10 +112,10 @@ Hex::Record::Parser - parse intel and srec hex records
     use Hex::Record::Parser qw(parse_intel_hex parse_srec_hex);
 
     # for intel hex record
-    my $hex_record = parse_intel_hex( 'intel.hex' );
+    my $hex_record = parse_intel_hex( $intel_hex_record_as_string );
 
     # for srec hex record
-    my $hex_record = parse_srec_hex( 'srec.hex' );
+    my $hex_record = parse_srec_hex( $srec_hex_record_as_string );
 
 =head1 DESCRIPTION
 
@@ -132,12 +128,12 @@ parse intel/srec hex files.
 =item C<parse_intel_hex( $intel_hex_file_name )>
 
 Exported by Hex::Parser
-parses intel hex file. Returns Hex object.
+parses intel hex file as string. Returns Hex object.
 
 =item C<parse_srec_hex( $srec_hex_file_name )>
 
 Exported by Hex::Parser
-parses srec hex file. Returns Hex object.
+parses srec hex file as string. Returns Hex object.
 
 =back
 

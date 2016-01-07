@@ -5,6 +5,8 @@ BEGIN { plan tests => 2 }
 
 use Hex::Record;
 
+my $intel_hex_string;
+
 my $hex = Hex::Record->new(
     _hex_parts => [
         [
@@ -72,13 +74,10 @@ END_HEX
 $intel_hex_string_expected =~ s{[^\S\n]}{}xmsg;
 $intel_hex_string_expected =~ s{\|}{}xmsg;
 
-my $intel_hex_10;
-my $fh;
-open $fh, '>', \$intel_hex_10 || die "could not open variable: $!";
 
-$hex->as_intel_hex(10, $fh);
+$intel_hex_string = $hex->as_intel_hex(10);
 
-is(  $intel_hex_10, $intel_hex_string_expected, 'dumped correctly as intel hex' );
+is(  $intel_hex_string, $intel_hex_string_expected, 'dumped correctly as intel hex' );
 
 # force checksum to '100' => '1' should be ignored
 
@@ -105,12 +104,9 @@ END_HEX
 $intel_hex_string_expected =~ s{[^\S\n]}{}xmsg;
 $intel_hex_string_expected =~ s{\|}{}xmsg;
 
-my $intel_hex_32;
-open $fh, '>', \$intel_hex_32 || die "could not open variable: $!";
+$intel_hex_string = $hex->as_intel_hex(32);
 
-$hex->as_intel_hex(32, $fh);
-
-is( $intel_hex_32,
+is( $intel_hex_string,
     $intel_hex_string_expected,
     'dumped correctly as intel hex'
 );

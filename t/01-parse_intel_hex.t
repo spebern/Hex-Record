@@ -4,11 +4,17 @@ use Test::More;
 BEGIN { plan tests => 8 }
 use Test::Warn;
 use Hex::Record::Parser qw(parse_intel_hex);
-use File::Basename;
 
 my ($intel_hex_string, $hex_parts_expected, $hex);
 
-my $dir = dirname(__FILE__) . '/hex_files/intel/';
+
+$intel_hex_string = <<'END_HEX_RECORD';
+:0A00000000010203040506070809C9
+:0A000A00101112131415161718191F
+:0A0014002021222324252627282975
+:00000001FF
+END_HEX_RECORD
+
 
 $hex_parts_expected = [
     [
@@ -21,19 +27,34 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_intel_hex( $dir . 'simple.hex' );
+$hex = parse_intel_hex( $intel_hex_string );
+
+
+$intel_hex_string = <<'END_HEX_RECORD';
+:0A000A00101112131415161718191F
+:0A0014002021222324252627282975
+:0A00000000010203040506070809C9
+END_HEX_RECORD
+
 
 is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
     'parsed simple intel hex correctly');
 
-$hex = parse_intel_hex( $dir . 'unordered.hex' );
+$hex = parse_intel_hex( $intel_hex_string );
 
 is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
     'parsed simple intel hex in wrong order correctly');
+
+$intel_hex_string = <<'END_HEX_RECORD';
+:0A00000000010203040506070809C9
+:0A0009001011121314151617181920
+:0A0014002021222324252627282975
+:00000001FF
+END_HEX_RECORD
 
 $hex_parts_expected = [
     [
@@ -52,7 +73,7 @@ $hex_parts_expected = [
 ];
 
 warning_is
-    { $hex = parse_intel_hex( $dir . 'simple_overwrite.hex' ) }
+    { $hex = parse_intel_hex( $intel_hex_string ) }
     "colliding parts: 0 .. 10 with part: 9 .. 19 ... overwriting",
     "warned of colliding parts";
 
@@ -60,6 +81,16 @@ is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
     'parsed intel hex with simple overwrite, two parts');
+
+
+
+$intel_hex_string = <<'END_HEX_RECORD';
+:0A00000000010203040506070809C9
+:0A0003001011121314151617181926
+:0A0005002021222324252627282984
+:00000001FF
+END_HEX_RECORD
+
 
 $hex_parts_expected = [
     [
@@ -72,7 +103,7 @@ $hex_parts_expected = [
 ];
 
 warnings_are
-    { $hex = parse_intel_hex( $dir . 'three_parts_overwrite.hex' ) }
+    { $hex = parse_intel_hex( $intel_hex_string ) }
     [ "colliding parts: 0 .. 10 with part: 3 .. 13 ... overwriting",
       "colliding parts: 0 .. 13 with part: 5 .. 15 ... overwriting", ],
     "warned of colliding parts";
@@ -80,7 +111,19 @@ warnings_are
 is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
-    'parsed intel hex with extended linear address offsets correctly');
+    'parsed intel hex with three parts overwrite correctly');
+
+$intel_hex_string = <<'END_HEX_RECORD';
+:020000040000FA
+:0A00000000112233445566778899F9
+:0A000A0099887766554433221100EF
+:02000004FFFFFC
+:0A00010000112233445566778899F8
+:0A000B0099887766554433221100EE
+:020000040001F9
+:0AFF000000112233445566778899FA
+:0AFF0A0099887766554433221100F0
+END_HEX_RECORD
 
 $hex_parts_expected = [
     [
@@ -106,12 +149,26 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_intel_hex( $dir . 'ext_lin_addr.hex' );
+$hex = parse_intel_hex( $intel_hex_string );
 
 is_deeply(
     $hex->{_hex_parts},
     $hex_parts_expected,
     'parsed intel hex with extended linear address offsets correctly');
+
+
+$intel_hex_string = <<'END_HEX_RECORD';
+:020000020000FC
+:0A00000000112233445566778899F9
+:0A000A0099887766554433221100EF
+:02000002FFFFFE
+:0A00010000112233445566778899F8
+:0A000B0099887766554433221100EE
+:020000020001FB
+:0AFF000000112233445566778899FA
+:0AFF0A0099887766554433221100F0
+END_HEX_RECORD
+
 
 $hex_parts_expected = [
     [
@@ -137,7 +194,7 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_intel_hex( $dir . 'ext_seg_addr.hex' );
+$hex = parse_intel_hex( $intel_hex_string );
 
 is_deeply(
     $hex->{_hex_parts},
