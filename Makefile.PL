@@ -19,7 +19,6 @@ WriteMakefile(
     },
     PREREQ_PM => {
         'Test::Warn'     => 0,
-        'File::Basename' => 0,
         'Storable'       => 0,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },

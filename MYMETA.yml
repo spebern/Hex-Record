@@ -18,5 +18,7 @@ no_index:
     - t
     - inc
 requires:
+  Storable: '0'
+  Test::Warn: '0'
   perl: '5.006'
-version: '0.01'
+version: '0.03'

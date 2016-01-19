@@ -8,14 +8,13 @@ our @EXPORT_OK = qw(
     parse_intel_hex
     parse_srec_hex);
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use Hex::Record;
 
 sub parse_intel_hex {
-    my ( $hex_string ) = @_;
+    my ($hex_string) = @_;
 
-    my $hex           = Hex::Record->new;
     my $addr_high_dec = 0;
 
     my @hex_parts;
@@ -30,25 +29,25 @@ sub parse_intel_hex {
 	      }ix or next;
 
         my $intel_type_dec = $2;
-        my @bytes_hex      = unpack( '(A2)*', $3 );
+        my @bytes_hex      = unpack('(A2)*', $3);
 
         # data line?
-        if ( $intel_type_dec == 0 ) {
-            push @hex_parts, [ $addr_high_dec + hex($1), \@bytes_hex ];
+        if ($intel_type_dec == 0){
+            push @hex_parts, [$addr_high_dec + hex($1), \@bytes_hex];
         }
 
         # extended linear address type?
-        elsif ( $intel_type_dec == 4 ) {
+        elsif ($intel_type_dec == 4){
             $addr_high_dec = hex( join '', @bytes_hex ) << 16;
         }
 
         # extended segment address type?
-        elsif ( $intel_type_dec == 2 ) {
+        elsif ($intel_type_dec == 2){
             $addr_high_dec = hex( join '', @bytes_hex ) << 4;
         }
     }
 
-
+    my $hex = Hex::Record->new;
     $hex->_set_merged_parts([ sort { $a->[0] <=> $b->[0] } @hex_parts ] );
     return $hex;
 }
@@ -67,9 +66,7 @@ my %_address_length_of_srec_type = (
 );
 
 sub parse_srec_hex {
-    my ( $hex_string ) = @_;
-
-    my $hex = Hex::Record->new;
+    my ($hex_string) = @_;
 
     my @hex_parts;
     for my $line (split m{\n\r?}, $hex_string) {
@@ -89,12 +86,13 @@ sub parse_srec_hex {
 	      }ix or next;
 
         #data line?
-        if ( $1 == 0 || $1 == 1 || $1 == 2 || $1 == 3) {
+        if ($1 == 0 || $1 == 1 || $1 == 2 || $1 == 3){
             push @hex_parts, [ hex $2, [ unpack '(A2)*', $3 ] ];
         }
     }
 
-    $hex->_set_merged_parts( [ sort { $a->[0] <=> $b->[0] } @hex_parts ] );
+    my $hex = Hex::Record->new;
+    $hex->_set_merged_parts( [sort { $a->[0] <=> $b->[0] } @hex_parts] );
 
     #sort the bytes of the record
     return $hex;
