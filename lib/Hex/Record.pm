@@ -5,7 +5,6 @@ use warnings;
 use Carp;
 
 # debug
-use feature qw(say);
 our $VERSION = '0.03';
 
 sub new {
@@ -304,7 +303,6 @@ sub _srec_hex_line_of {
     }
     # 32 bit addr
     elsif (length $total_addr_hex <= 8){
-        say length $total_addr_hex;
         $total_addr_hex = "0$total_addr_hex" if length $total_addr_hex == 7;
         $type = 3;
     }
