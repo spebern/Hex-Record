@@ -51,21 +51,21 @@ sub parse_intel_hex {
     return _get_merged_parts(\@hex_parts);
 }
 
-my %_address_length_of_srec_type = (
-    0 => '4',
-    1 => '4',
-    2 => '6',
-    3 => '8',
-    4 => undef,
-    5 => '4',
-    6 => '6',
-    7 => '8',
-    8 => '6',
-    9 => '4',
-);
-
 sub parse_srec_hex {
     my ($hex_string) = @_;
+
+    my %address_length_of_srec_type = (
+        0 => '4',
+        1 => '4',
+        2 => '6',
+        3 => '8',
+        4 => undef,
+        5 => '4',
+        6 => '6',
+        7 => '8',
+        8 => '6',
+        9 => '4',
+    );
 
     my @hex_parts;
     for my $line (split m{\n\r?}, $hex_string) {
@@ -73,7 +73,7 @@ sub parse_srec_hex {
 
         my $type = substr $line, 1, 1;
 
-        my $addr_length = $_address_length_of_srec_type{$type};
+        my $addr_length = $address_length_of_srec_type{$type};
 
         $line =~ m{
 		      s #srec hex start
