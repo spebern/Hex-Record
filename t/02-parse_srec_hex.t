@@ -5,7 +5,7 @@ BEGIN { plan tests => 8 }
 use Test::Warn;
 use Hex::Record::Parser qw(parse_srec_hex);
 
-my ($srec_hex_string, $hex_parts_expected, $hex);
+my ($srec_hex_string, $hex_parts_expected, $hex_parts_ref);
 
 $srec_hex_string = <<'END_HEX_RECORD';
 S10C000000010203040506070809C6
@@ -24,10 +24,10 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_srec_hex( $srec_hex_string );
+$hex_parts_ref = parse_srec_hex( $srec_hex_string );
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed simple srec hex correctly');
 
@@ -39,10 +39,10 @@ S10C000000010203040506070809C6
 END_HEX_RECORD
 
 
-$hex = parse_srec_hex( $srec_hex_string );
+$hex_parts_ref = parse_srec_hex( $srec_hex_string );
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed simple srec hex in wrong order correctly');
 
@@ -71,12 +71,12 @@ $hex_parts_expected = [
 ];
 
 warning_is
-    { $hex = parse_srec_hex( $srec_hex_string ) }
+    { $hex_parts_ref = parse_srec_hex( $srec_hex_string ) }
     "colliding parts: 0 .. 10 with part: 9 .. 19 ... overwriting",
     "warned of colliding parts";
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed srec hex with simple overwrite, two parts');
 
@@ -97,13 +97,13 @@ $hex_parts_expected = [
 ];
 
 warnings_are
-    { $hex = parse_srec_hex( $srec_hex_string ) }
+    { $hex_parts_ref = parse_srec_hex( $srec_hex_string ) }
     [ "colliding parts: 0 .. 10 with part: 3 .. 13 ... overwriting",
       "colliding parts: 0 .. 13 with part: 5 .. 15 ... overwriting", ],
     "warned of colliding parts";
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed srec hex with simple overwrite, two parts');
     
@@ -134,10 +134,10 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_srec_hex( $srec_hex_string );
+$hex_parts_ref = parse_srec_hex( $srec_hex_string );
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed srec hex with 24 bit addresses correctly');
 
@@ -168,10 +168,10 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_srec_hex( $srec_hex_string );
+$hex_parts_ref = parse_srec_hex( $srec_hex_string );
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed srec hex with 32 bit addresses correctly');
 

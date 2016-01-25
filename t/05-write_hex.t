@@ -34,7 +34,7 @@ my $hex_parts_expected = [
     ],
 ];
 
-is_deeply( $hex->{_hex_parts},
+is_deeply( $hex->{hex_parts},
            $hex_parts_expected,
            "successfully written hex parts" );
 

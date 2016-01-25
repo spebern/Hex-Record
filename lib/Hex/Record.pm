@@ -2,15 +2,13 @@ package Hex::Record;
 
 use strict;
 use warnings;
-use Carp;
 
-# debug
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 sub new {
     my ($class, %args) = @_;
 
-    %args = (_hex_parts => []) unless %args;
+    $args{hex_parts} = [] unless exists $args{hex_parts};
 
     return bless \%args, $class;
 }
@@ -23,8 +21,8 @@ sub write {
     my $to = $from + @$bytes_hex_ref;
 
     # insert part
-    for (my $hex_part_i = 0; $hex_part_i < @{$self->{_hex_parts}}; $hex_part_i++){
-        my $hex_part = $self->{_hex_parts}->[$hex_part_i];
+    for (my $hex_part_i = 0; $hex_part_i < @{$self->{hex_parts}}; $hex_part_i++){
+        my $hex_part = $self->{hex_parts}->[$hex_part_i];
 
         my $start_addr = $hex_part->[0];
         my $end_addr   = $hex_part->[0] + $#{$hex_part->[1]};
@@ -38,23 +36,23 @@ sub write {
         elsif ($from == $end_addr + 1){
             push @{$hex_part->[1]}, @$bytes_hex_ref;
 
-            return if $hex_part_i+1 == @{$self->{_hex_parts}};
+            return if $hex_part_i+1 == @{$self->{hex_parts}};
 
-            my $next_part = $self->{_hex_parts}->[$hex_part_i+1];
+            my $next_part = $self->{hex_parts}->[$hex_part_i+1];
             # merge with next part
             if ($to == $next_part->[0] - 1){
                 push @{$hex_part->[1]}, @{$next_part->[1]};
-                splice @{$self->{_hex_parts}}, $hex_part_i+1, 1;
+                splice @{$self->{hex_parts}}, $hex_part_i+1, 1;
             }
             return;
         }
         elsif ($from < $start_addr){
-            splice @{$self->{_hex_parts}}, $hex_part_i, 0, [$from, $bytes_hex_ref];
+            splice @{$self->{hex_parts}}, $hex_part_i, 0, [$from, $bytes_hex_ref];
             return;
         }
     }
 
-    push @{$self->{_hex_parts}}, [$from, $bytes_hex_ref];
+    push @{$self->{hex_parts}}, [$from, $bytes_hex_ref];
     return;
 }
 
@@ -64,8 +62,8 @@ sub get {
     my $to = $from + $length - 1;
 
     my @bytes_hex;
-    for (my $hex_part_i = 0; $hex_part_i < @{$self->{_hex_parts}}; $hex_part_i++){
-        my $hex_part = $self->{_hex_parts}->[$hex_part_i];
+    for (my $hex_part_i = 0; $hex_part_i < @{$self->{hex_parts}}; $hex_part_i++){
+        my $hex_part = $self->{hex_parts}->[$hex_part_i];
 
         my $start_addr = $hex_part->[0];
         my $end_addr   = $hex_part->[0] + $#{$hex_part->[1]};
@@ -81,8 +79,8 @@ sub get {
             else {
                 @bytes_hex = @{$hex_part->[1]}[ $from - $start_addr .. $#{$hex_part->[1]} ];
 
-                while (++$hex_part_i < @{$self->{_hex_parts}}){
-                    my $hex_part = $self->{_hex_parts}->[$hex_part_i];
+                while (++$hex_part_i < @{$self->{hex_parts}}){
+                    my $hex_part = $self->{hex_parts}->[$hex_part_i];
 
                     my $start_addr = $hex_part->[0];
                     my $end_addr   = $hex_part->[0] + $#{$hex_part->[1]};
@@ -93,7 +91,7 @@ sub get {
 
                     else {
                         # fill gap betwenn this part and part before with undef
-                        my $hex_part_before             = $self->{_hex_parts}->[$hex_part_i - 1];
+                        my $hex_part_before             = $self->{hex_parts}->[$hex_part_i - 1];
                         my $hex_part_before_end_addr = $hex_part_before->[0] + $#{$hex_part_before->[1]};
 
                         push @bytes_hex, (undef) x ($start_addr - $hex_part_before_end_addr);
@@ -124,8 +122,8 @@ sub remove {
 
     my $to = $from + $length-1;
 
-    for (my $hex_part_i = 0; $hex_part_i < @{ $self->{_hex_parts} }; $hex_part_i++){
-        my $hex_part = $self->{_hex_parts}->[$hex_part_i];
+    for (my $hex_part_i = 0; $hex_part_i < @{ $self->{hex_parts} }; $hex_part_i++){
+        my $hex_part = $self->{hex_parts}->[$hex_part_i];
 
         my $start_addr = $hex_part->[0];
         my $end_addr   = $hex_part->[0] + $#{$hex_part->[1]};
@@ -134,7 +132,7 @@ sub remove {
             if ($to <= $end_addr){
                 if ($from <= $start_addr){
                     if ($to == $end_addr){
-                        splice @{$self->{_hex_parts}}, $hex_part_i, 1;
+                        splice @{$self->{hex_parts}}, $hex_part_i, 1;
                     }
                     else {
                         splice @{$hex_part->[1]}, 0, @{$hex_part->[1]} - $end_addr+$to;;
@@ -146,7 +144,7 @@ sub remove {
                     splice @{$hex_part->[1]}, $from-$start_addr, $length;
                 }
                 else {
-                    splice @{$self->{_hex_parts}}, $hex_part_i, 1, (
+                    splice @{$self->{hex_parts}}, $hex_part_i, 1, (
                         [
                             $start_addr,
                             [@{$hex_part->[1]}[ 0 .. $from - $start_addr - 1]],
@@ -160,11 +158,11 @@ sub remove {
                 return;
             }
             else {
-                splice @{$self->{_hex_parts}}, $hex_part_i, 1;
+                splice @{$self->{hex_parts}}, $hex_part_i, 1;
                 --$hex_part_i;
             }
-            while (++$hex_part_i < @{$self->{_hex_parts}}){
-                my $hex_part = $self->{_hex_parts}->[$hex_part_i];
+            while (++$hex_part_i < @{$self->{hex_parts}}){
+                my $hex_part = $self->{hex_parts}->[$hex_part_i];
 
                 my $start_addr = $hex_part->[0];
                 return if $to < $start_addr;
@@ -176,7 +174,7 @@ sub remove {
                     $hex_part->[0] = $to + 1;
                     return;
                 }
-                splice @{$self->{_hex_parts}}, $hex_part_i, 1;
+                splice @{$self->{hex_parts}}, $hex_part_i, 1;
                 --$hex_part_i;
 
                 return if $to == $end_addr;
@@ -194,8 +192,8 @@ sub as_intel_hex {
     my ($self, $bytes_hex_a_line) = @_;
 
     my $intel_hex_string = '';
-    for (my $hex_part_i = 0; $hex_part_i < @{ $self->{_hex_parts} }; $hex_part_i++){
-        my $hex_part = $self->{_hex_parts}->[$hex_part_i];
+    for (my $hex_part_i = 0; $hex_part_i < @{ $self->{hex_parts} }; $hex_part_i++){
+        my $hex_part = $self->{hex_parts}->[$hex_part_i];
 
         my $start_addr = $hex_part->[0];
         my $end_addr   = $hex_part->[0] + $#{$hex_part->[1]};
@@ -245,22 +243,23 @@ sub _intel_hex_line_of {
     $checksum_hex    = '00' if length $checksum_hex != 2;
 
     return join '',
-        (':',
-         sprintf( '%02X', $byte_count ),
-         $addr_low_hex,
-         sprintf( '%02X', $type ),
-         @$bytes_hex_ref,
-         $checksum_hex,
-         "\n"
-     );
+        (
+            ':',
+            sprintf( '%02X', $byte_count ),
+            $addr_low_hex,
+            sprintf( '%02X', $type ),
+            @$bytes_hex_ref,
+            $checksum_hex,
+            "\n"
+        );
 }
 
 sub as_srec_hex {
     my ($self, $bytes_hex_a_line) = @_;
 
     my $srec_hex_string = '';
-    for (my $hex_part_i = 0; $hex_part_i < @{ $self->{_hex_parts} }; $hex_part_i++){
-        my $hex_part = $self->{_hex_parts}->[$hex_part_i];
+    for (my $hex_part_i = 0; $hex_part_i < @{ $self->{hex_parts} }; $hex_part_i++){
+        my $hex_part = $self->{hex_parts}->[$hex_part_i];
 
         my $start_addr = $hex_part->[0];
         my $end_addr   = $hex_part->[0] + $#{$hex_part->[1]};
@@ -326,72 +325,14 @@ sub _srec_hex_line_of {
     $checksum_hex    = '00' if length $checksum_hex != 2;
 
     return join '',
-        ("S$type",
-         sprintf('%02X', $byte_count),
-         $total_addr_hex,
-         @$bytes_hex_ref,
-         $checksum_hex,
-         "\n"
-     );
-}
-
-# used to set parts, hex_parts_ref is sorted
-sub _set_merged_parts {
-    my ($self, $hex_parts_ref) = @_;
-
-    return unless @$hex_parts_ref;
-
-    # set first part
-    my @merged_parts          = shift @$hex_parts_ref;
-    my $merged_parts_end_addr = $merged_parts[-1]->[0] + @{ $merged_parts[-1]->[1] };
-
-    for my $hex_part_ref (@$hex_parts_ref) {
-
-        my $hex_part_start_addr = $hex_part_ref->[0];
-        my $hex_part_byte_count = @{ $hex_part_ref->[1] };
-        my $hex_part_end_addr   = $hex_part_start_addr + $hex_part_byte_count;
-
-        # overwrite?
-        if ($hex_part_start_addr < $merged_parts_end_addr){
-            # remove parts completly inlcuded
-            my $warning = "colliding parts: ";
-
-            while ($hex_part_start_addr < $merged_parts[-1]->[0]){
-                my $removed_part = pop @merged_parts;
-                $warning .= $removed_part->[0] . ' .. ' . $removed_part->[0] +  @{$removed_part->[1]} . ', ';
-            }
-
-            $warning .=
-                $merged_parts[-1]->[0] . ' .. ' . ( $merged_parts[-1]->[0] +  @{$merged_parts[-1]->[1]} )
-                . ' with part: '
-                . $hex_part_start_addr . ' .. '  . $hex_part_end_addr
-                . " ... overwriting";
-
-            carp $warning;
-
-            my $part_offset = $hex_part_start_addr - $merged_parts[-1]->[0];
-
-              @{$merged_parts[-1]->[1]}[$part_offset .. $part_offset + $hex_part_byte_count - 1]
-            = @{$hex_part_ref->[1]};
-        }
-
-        #append?
-        elsif ($hex_part_start_addr == $merged_parts_end_addr){
-            push @{$merged_parts[-1]->[1]}, @{$hex_part_ref->[1]};
-        }
-
-        #new part!
-        else {
-            push @merged_parts, $hex_part_ref;
-        }
-
-        #set new addr
-        $merged_parts_end_addr = $hex_part_end_addr if $hex_part_end_addr > $merged_parts_end_addr;
-    }
-
-    $self->{_hex_parts} = \@merged_parts;
-
-    return;
+        (
+            "S$type",
+            sprintf('%02X', $byte_count),
+            $total_addr_hex,
+            @$bytes_hex_ref,
+            $checksum_hex,
+            "\n"
+        );
 }
 
 1;
@@ -402,22 +343,29 @@ Hex::Record - manipulate intel and srec hex records
 
 =head1 SYNOPSIS
 
-    use Hex::Record::Parser qw(parse_intel_hex parse_srec_hex);
+    use Hex::Record;
 
-    # get hex object from the parser
-    my $hex_record = parse_intel_hex( $intel_hex_record_as_string );
-
-    # get 100 bytes ( hex format ) starting at address 0x100
-    # every single byte that is not found is returned as undef
-    my $bytes_ref = $hex_record->get( 0x100, 10 );
-
-    # remove 100 bytes starting at address 0x100
-    $hex_record->remove( 0x100, 10 );
+    # create your own hex records
+    my $hex_record = Hex::Record->new;
 
     # write/overwrite 3 bytes starting at address 0x100
-    $hex_record->write( 0x100, [ 'AA', 'BB', 'CC' ] );
+    $hex_record->write( 0x100, [qw(AA BB CC)]);
 
-    # dump as intel hex ( will use extended linear addresses for offset )
+    # or use the parser
+    use Hex::Record::Parser qw(parse_intel_hex parse_srec_hex);
+
+    my $hex_record = Hex::Record->new(
+        hex_parts => parse_intel_hex($intel_hex_record_as_string)
+    );
+
+    # get 100 bytes (hex format) starting at address 0x100
+    # every single byte that is not found is returned as undef
+    my $bytes_ref = $hex_record->get(0x100, 10);
+
+    # remove 100 bytes starting at address 0x100
+    $hex_record->remove(0x100, 10);
+
+    # dump as intel hex (will use extended linear addresses for offset)
     # maximum of 10 bytes in data field
     my $intel_hex_string = $hex_record->as_intel_hex(10);
 
@@ -438,7 +386,7 @@ Manipulate intel/srec hex files.
 Returns $count hex bytes in array reference starting at address $from.
 If hex byte is not found, undef instead.
 
-    [ 'AA', '00', undef, undef, 'BC', undef ]
+    ['AA', '00', undef, undef, 'BC', undef]
 
 =item C<remove( $from, $count )>
 

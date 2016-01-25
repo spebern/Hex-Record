@@ -5,8 +5,7 @@ BEGIN { plan tests => 8 }
 use Test::Warn;
 use Hex::Record::Parser qw(parse_intel_hex);
 
-my ($intel_hex_string, $hex_parts_expected, $hex);
-
+my ($intel_hex_string, $hex_parts_expected, $hex_parts_ref);
 
 $intel_hex_string = <<'END_HEX_RECORD';
 :0A00000000010203040506070809C9
@@ -27,7 +26,7 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_intel_hex( $intel_hex_string );
+$hex_parts_ref = parse_intel_hex( $intel_hex_string );
 
 
 $intel_hex_string = <<'END_HEX_RECORD';
@@ -38,14 +37,14 @@ END_HEX_RECORD
 
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed simple intel hex correctly');
 
-$hex = parse_intel_hex( $intel_hex_string );
+$hex_parts_ref = parse_intel_hex( $intel_hex_string );
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed simple intel hex in wrong order correctly');
 
@@ -73,12 +72,12 @@ $hex_parts_expected = [
 ];
 
 warning_is
-    { $hex = parse_intel_hex( $intel_hex_string ) }
+    { $hex_parts_ref = parse_intel_hex( $intel_hex_string ) }
     "colliding parts: 0 .. 10 with part: 9 .. 19 ... overwriting",
     "warned of colliding parts";
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed intel hex with simple overwrite, two parts');
 
@@ -103,13 +102,13 @@ $hex_parts_expected = [
 ];
 
 warnings_are
-    { $hex = parse_intel_hex( $intel_hex_string ) }
+    { $hex_parts_ref = parse_intel_hex( $intel_hex_string ) }
     [ "colliding parts: 0 .. 10 with part: 3 .. 13 ... overwriting",
       "colliding parts: 0 .. 13 with part: 5 .. 15 ... overwriting", ],
     "warned of colliding parts";
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed intel hex with three parts overwrite correctly');
 
@@ -149,10 +148,10 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_intel_hex( $intel_hex_string );
+$hex_parts_ref = parse_intel_hex( $intel_hex_string );
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed intel hex with extended linear address offsets correctly');
 
@@ -194,10 +193,10 @@ $hex_parts_expected = [
     ],
 ];
 
-$hex = parse_intel_hex( $intel_hex_string );
+$hex_parts_ref = parse_intel_hex( $intel_hex_string );
 
 is_deeply(
-    $hex->{_hex_parts},
+    $hex_parts_ref,
     $hex_parts_expected,
     'parsed intel hex with extended segment address offsets correctly');
 

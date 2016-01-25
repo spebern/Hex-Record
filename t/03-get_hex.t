@@ -8,7 +8,7 @@ use Hex::Record;
 my ($hex, @bytes, @bytes_expected, $first_hex_part_expected);
 
 $hex = Hex::Record->new(
-    _hex_parts => [
+    hex_parts => [
         [
             0x0,
             [

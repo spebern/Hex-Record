@@ -8,7 +8,7 @@ use Hex::Record;
 my $intel_hex_string;
 
 my $hex = Hex::Record->new(
-    _hex_parts => [
+    hex_parts => [
         [
             0x0,
             [
@@ -82,7 +82,7 @@ is(  $intel_hex_string, $intel_hex_string_expected, 'dumped correctly as intel h
 # force checksum to '100' => '1' should be ignored
 
 $hex = Hex::Record->new(
-    _hex_parts => [
+    hex_parts => [
         [
             0x20C0,
             [

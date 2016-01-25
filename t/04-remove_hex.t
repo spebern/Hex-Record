@@ -7,7 +7,7 @@ use Storable qw(dclone);
 use Hex::Record;
 
 my $hex_original = Hex::Record->new(
-    _hex_parts => [
+    hex_parts => [
         [
             0x0,
             [
@@ -43,7 +43,7 @@ my @remove_bytes_tests = (
     {
         from  => 0,
         count => 1,
-        expected_hex_parts => [
+        expectedhex_parts => [
             [
                 0x10,
                 [
@@ -71,7 +71,7 @@ my @remove_bytes_tests = (
     {
         from  => 0,
         count => 19,
-        expected_hex_parts => [
+        expectedhex_parts => [
             [
                 0x100,
                 [
@@ -93,7 +93,7 @@ my @remove_bytes_tests = (
     {
         from  => 0,
         count => 306,
-        expected_hex_parts => [
+        expectedhex_parts => [
             [
                 0x1000,
                 [
@@ -105,12 +105,12 @@ my @remove_bytes_tests = (
     {
         from  => 0,
         count => 4099,
-        expected_hex_parts => [],
+        expectedhex_parts => [],
     },
     {
         from  => 0x100,
         count => 5,
-        expected_hex_parts => [
+        expectedhex_parts => [
             [
                 0x0,
                 [
@@ -144,7 +144,7 @@ my @remove_bytes_tests = (
     {
         from  => 0x11,
         count => 2,
-        expected_hex_parts => [
+        expectedhex_parts => [
             [
                 0x0,
                 [
@@ -178,7 +178,7 @@ my @remove_bytes_tests = (
     {
         from  => 0x10,
         count => 3,
-        expected_hex_parts => [
+        expectedhex_parts => [
             [
                 0x0,
                 [
@@ -206,12 +206,12 @@ my @remove_bytes_tests = (
     {
         from  => 0,
         count => 1000000000000000000000000000,
-        expected_hex_parts => [],
+        expectedhex_parts => [],
     },
     {
         from  => 0x105,
         count => 5,
-        expected_hex_parts => [
+        expectedhex_parts => [
             [
                 0x0,
                 [
@@ -250,7 +250,7 @@ my @remove_bytes_tests = (
     {
         from  => 0x105,
         count => 5,
-        expected_hex_parts => [
+        expectedhex_parts => [
             [
                 0x0,
                 [
@@ -289,7 +289,7 @@ my @remove_bytes_tests = (
     {
         from  => 0x08,
         count => 4000,
-        expected_hex_parts => [
+        expectedhex_parts => [
             [
                 0x0,
                 [
@@ -316,8 +316,8 @@ for my $remove_bytes_test (@remove_bytes_tests) {
     $hex_copy->remove( $from, $count );
 
     is_deeply(
-        $hex_copy->{_hex_parts},
-        $remove_bytes_test->{expected_hex_parts},
+        $hex_copy->{hex_parts},
+        $remove_bytes_test->{expectedhex_parts},
         "successfully removed $count bytes from $from"
     );
 }
