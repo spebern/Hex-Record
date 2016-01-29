@@ -8,47 +8,47 @@ use Hex::Record;
 my $intel_hex_string;
 
 my $hex = Hex::Record->new(
-    hex_parts => [
-        [
-            0x0,
-            [
+    parts => [
+        {
+            start => 0x0,
+            bytes => [
                 qw(00 11 22 33 44 55 66 77 88 99),
             ],
-        ],
-        [
-            0xB,
-            [
+        },
+        {
+            start => 0xB,
+            bytes => [
                 qw(BB),
             ],
-        ],
-        [
-            0xD,
-            [
+        },
+        {
+            start => 0xD,
+            bytes => [
                 qw(DD),
             ],
-        ],
-        [
-            0x0000FFF0,
-            [
+        },
+        {
+            start => 0x0000FFF0,
+            bytes => [
                 qw(00 01 02 03 04 05 06 07 08 09
                    10 11 12 13 14 15 16 17 18 19
                    20 21 22 23 24 25 26 27 28 29
                    30 31 32 33 34 35 36 37 38 39
                    40 41 42 43 44 45 46 47 48 49),
             ],
-        ],
-        [
-            0xFF0000,
-            [
+        },
+        {
+            start => 0xFF0000,
+            bytes => [
                 qw(00 11 22 33 44 55 66 77 88 99),
             ],
-        ],
-        [
-            0xFFFFFF00,
-            [
+        },
+        {
+            start => 0xFFFFFF00,
+            bytes => [
                 qw(00 11 22 33 44 55 66 77 88 99 00),
             ],
-        ],
+        },
     ],
 );
 
@@ -82,16 +82,16 @@ is(  $intel_hex_string, $intel_hex_string_expected, 'dumped correctly as intel h
 # force checksum to '100' => '1' should be ignored
 
 $hex = Hex::Record->new(
-    hex_parts => [
-        [
-            0x20C0,
-            [
+    parts => [
+        {
+            start => 0x20C0,
+            bytes => [
                 qw(40 00 40 00 40 00 40 00 40 00
                    40 00 40 00 40 00 40 00 40 00
                    40 00 40 00 40 00 40 00 40 00
                    40 00),
             ],
-        ],
+        },
     ]
 );
 

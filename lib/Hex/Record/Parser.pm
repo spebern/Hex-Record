@@ -9,7 +9,7 @@ our @EXPORT_OK = qw(
     parse_intel_hex
     parse_srec_hex);
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use Hex::Record;
 
@@ -18,7 +18,7 @@ sub parse_intel_hex {
 
     my $addr_high_dec = 0;
 
-    my @hex_parts;
+    my @parts;
     for my $line (split m{\n\r?}, $hex_string) {
         $line =~ m{
 		  : # intel hex start
@@ -34,7 +34,10 @@ sub parse_intel_hex {
 
         # data line?
         if ($intel_type_dec == 0){
-            push @hex_parts, [$addr_high_dec + hex($1), \@bytes_hex];
+            push @parts, {
+                start => $addr_high_dec + hex($1),
+                bytes => \@bytes_hex
+            };
         }
 
         # extended linear address type?
@@ -48,7 +51,7 @@ sub parse_intel_hex {
         }
     }
 
-    return _get_merged_parts(\@hex_parts);
+    return _get_merged_parts(\@parts);
 }
 
 sub parse_srec_hex {
@@ -67,7 +70,7 @@ sub parse_srec_hex {
         9 => '4',
     );
 
-    my @hex_parts;
+    my @parts;
     for my $line (split m{\n\r?}, $hex_string) {
         next unless substr( $line, 0, 1 ) =~ m{s}i;
 
@@ -86,67 +89,72 @@ sub parse_srec_hex {
 
         #data line?
         if ($1 == 0 || $1 == 1 || $1 == 2 || $1 == 3){
-            push @hex_parts, [ hex $2, [ unpack '(A2)*', $3 ] ];
+            push @parts, {
+                start => hex $2,
+                bytes => [ unpack '(A2)*', $3 ]
+            };
         }
     }
 
     #sort the bytes of the record
-    return _get_merged_parts(\@hex_parts);
+    return _get_merged_parts(\@parts);
 }
 
 sub _get_merged_parts {
-    my ($hex_parts_ref) = @_;
+    my ($parts_ref) = @_;
 
-    return unless @$hex_parts_ref;
+    return unless @$parts_ref;
 
-    @$hex_parts_ref = sort { $a->[0] <=> $b->[0] } @$hex_parts_ref;
+    @$parts_ref = sort { $a->{start} <=> $b->{start} } @$parts_ref;
 
     # set first part
-    my @merged_parts          = shift @$hex_parts_ref;
-    my $merged_parts_end_addr = $merged_parts[-1]->[0] + @{ $merged_parts[-1]->[1] };
+    my @merged_parts          = shift @$parts_ref;
+    my $merged_parts_end_addr = $merged_parts[-1]->{start} + @{ $merged_parts[-1]->{bytes} };
 
-    for my $hex_part_ref (@$hex_parts_ref) {
+    for my $part_ref (@$parts_ref) {
 
-        my $hex_part_start_addr = $hex_part_ref->[0];
-        my $hex_part_byte_count = @{ $hex_part_ref->[1] };
-        my $hex_part_end_addr   = $hex_part_start_addr + $hex_part_byte_count;
+        my $part_start_addr = $part_ref->{start};
+        my $part_byte_count = @{ $part_ref->{bytes} };
+        my $part_end_addr   = $part_start_addr + $part_byte_count;
 
         # overwrite?
-        if ($hex_part_start_addr < $merged_parts_end_addr){
+        if ($part_start_addr < $merged_parts_end_addr){
             # remove parts completly inlcuded
             my $warning = "colliding parts: ";
 
-            while ($hex_part_start_addr < $merged_parts[-1]->[0]){
+            while ($part_start_addr < $merged_parts[-1]->{start}){
                 my $removed_part = pop @merged_parts;
-                $warning .= $removed_part->[0] . ' .. ' . ($removed_part->[0] +  @{$removed_part->[1]}) . ', ';
+                $warning .= $removed_part->{start} . ' .. '
+                          . ($removed_part->{start} +  @{$removed_part->{bytes}}) . ', ';
             }
 
             $warning .=
-                $merged_parts[-1]->[0] . ' .. ' . ( $merged_parts[-1]->[0] +  @{$merged_parts[-1]->[1]} )
+                $merged_parts[-1]->{start} . ' .. '
+                . ( $merged_parts[-1]->{start} +  @{$merged_parts[-1]->{bytes}} )
                 . ' with part: '
-                . $hex_part_start_addr . ' .. '  . $hex_part_end_addr
+                . $part_start_addr . ' .. '  . $part_end_addr
                 . " ... overwriting";
 
             carp $warning;
 
-            my $part_offset = $hex_part_start_addr - $merged_parts[-1]->[0];
+            my $part_offset = $part_start_addr - $merged_parts[-1]->{start};
 
-              @{$merged_parts[-1]->[1]}[$part_offset .. $part_offset + $hex_part_byte_count - 1]
-            = @{$hex_part_ref->[1]};
+              @{$merged_parts[-1]->{bytes}}[$part_offset .. $part_offset + $part_byte_count - 1]
+            = @{$part_ref->{bytes}};
         }
 
         #append?
-        elsif ($hex_part_start_addr == $merged_parts_end_addr){
-            push @{$merged_parts[-1]->[1]}, @{$hex_part_ref->[1]};
+        elsif ($part_start_addr == $merged_parts_end_addr){
+            push @{$merged_parts[-1]->{bytes}}, @{$part_ref->{bytes}};
         }
 
         #new part!
         else {
-            push @merged_parts, $hex_part_ref;
+            push @merged_parts, $part_ref;
         }
 
         #set new addr
-        $merged_parts_end_addr = $hex_part_end_addr if $hex_part_end_addr > $merged_parts_end_addr;
+        $merged_parts_end_addr = $part_end_addr if $part_end_addr > $merged_parts_end_addr;
     }
 
     return \@merged_parts;
@@ -166,23 +174,29 @@ Hex::Record::Parser - parse intel and srec hex records
     use Hex::Record::Parser qw(parse_intel_hex parse_srec_hex);
 
     # for intel hex record
-    my $hex_parts_ref = parse_intel_hex( $intel_hex_record_as_string );
+    my $hex_parts_ref = parse_intel_hex($intel_hex_record_as_string);
 
     # for srec hex record
-    my $hex_parts_ref = parse_srec_hex( $srec_hex_record_as_string );
+    my $hex_parts_ref = parse_srec_hex($srec_hex_record_as_string);
 
     # the sctucture returned by the parser will look like this
     # the part start addresses (0x100, 0xFFFFF in example) are sorted
     my $hex_parts_ref = [
-        0x100   => [qw(11 22 33 44 55 66)],
-        0xFFFFF => [qw(77 88 99 AA BB CC)],
+        {
+            start => 0x100,
+            bytes => [qw(11 22 33 44 55 66)],
+        },
+        {
+            start => 0xFFFFF,
+            bytes => [qw(77 88 99 AA BB CC)],
+        },
     ];
 
     # create hex records, to manipulate and dump hex data
     use Hex::Record;
 
     my $hex_record = Hex::Record->new(
-        hex_parts => $hex_parts_ref
+        parts => $hex_parts_ref
     );
 
 

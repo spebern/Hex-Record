@@ -8,47 +8,47 @@ use Hex::Record;
 my ($hex, @bytes, @bytes_expected, $first_hex_part_expected);
 
 $hex = Hex::Record->new(
-    hex_parts => [
-        [
-            0x0,
-            [
+    parts => [
+        {
+            start => 0x0,
+            bytes => [
                 qw(00 11 22 33 44 55 66 77 88 99),
             ],
-        ],
-        [
-            0xA,
-            [
+        },
+        {
+            start => 0xA,
+            bytes => [
                 qw(AA),
             ],
-        ],
-        [
-            0xC,
-            [
+        },
+        {
+            start => 0xC,
+            bytes => [
                 qw(CC),
             ],
-        ],
-        [
-            0x0000FFF0,
-            [
+        },
+        {
+            start => 0x0000FFF0,
+            bytes => [
                 qw(00 01 02 03 04 05 06 07 08 09
                    10 11 12 13 14 15 16 17 18 19
                    20 21 22 23 24 25 26 27 28 29
                    30 31 32 33 34 35 36 37 38 39
                    40 41 42 43 44 45 46 47 48 49),
             ],
-        ],
-        [
-            0xFF0000,
-            [
+        },
+        {
+            start => 0xFF0000,
+            bytes => [
                 qw(00 11 22 33 44 55 66 77 88 99),
             ],
-        ],
-        [
-            0xFFFFFF00,
-            [
+        },
+        {
+            start => 0xFFFFFF00,
+            bytes => [
                 qw(00 11 22 33 44 55 66 77 88 99),
             ],
-        ],
+        },
     ],
 );
 
