@@ -1,0 +1,128 @@
+=head1 NAME
+
+Hex::Record::Parser - parse intel and srec hex records
+
+=head1 SYNOPSIS
+
+    use Hex::Record::Parser qw(parse_intel_hex parse_srec_hex);
+
+    # for intel hex record
+    my $hex_parts_ref = parse_intel_hex($intel_hex_record_as_string);
+
+    # for srec hex record
+    my $hex_parts_ref = parse_srec_hex($srec_hex_record_as_string);
+
+    # the sctucture returned by the parser will look like this
+    # the part start addresses (0x100, 0xFFFFF in example) are sorted
+    my $hex_parts_ref = [
+        {
+            start => 0x100,
+            bytes => [qw(11 22 33 44 55 66)],
+        },
+        {
+            start => 0xFFFFF,
+            bytes => [qw(77 88 99 AA BB CC)],
+        },
+    ];
+
+    # create hex records, to manipulate and dump hex data
+    use Hex::Record;
+
+    my $hex_record = Hex::Record->new(
+        parts => $hex_parts_ref
+    );
+
+
+=head1 DESCRIPTION
+
+parse intel/srec hex files.
+
+=head1 LICENSE
+
+This is released under the Artistic License.
+
+=head1 AUTHOR
+
+spebern <bernhard@specht.net>
+
+=head1 NAME
+
+Hex::Record - manipulate intel and srec hex records
+
+=head1 SYNOPSIS
+
+    use Hex::Record;
+
+    # create your own hex records
+    my $hex_record = Hex::Record->new;
+
+    # write/overwrite 3 bytes starting at address 0x100
+    $hex_record->write(0x100, [qw(AA BB CC)]);
+
+    # or use the parser
+    use Hex::Record::Parser qw(parse_intel_hex parse_srec_hex);
+
+    my $hex_record = Hex::Record->new(
+        parts => parse_intel_hex($intel_hex_record_as_string)
+    );
+
+    # get 100 bytes (hex format) starting at address 0x100
+    # every single byte that is not found is returned as undef
+    my $bytes_ref = $hex_record->get(0x100, 10);
+
+    # remove 100 bytes starting at address 0x100
+    $hex_record->remove(0x100, 10);
+
+    # dump as intel hex (will use extended linear addresses for offset)
+    # maximum of 10 bytes in data field
+    my $intel_hex_string = $hex_record->as_intel_hex(10);
+
+    # dump as srec hex (always tries to use smallest address)
+    # maximum of 10 bytes in data field
+    my $srec_hex_string = $hex_record->as_screc_hex(10);
+
+=head1 DESCRIPTION
+
+Manipulate intel/srec hex files.
+
+=head2 Methods of Hex
+
+=over 12
+
+=item C<get( $from, $count )>
+
+Returns $count hex bytes in array reference starting at address $from.
+If hex byte is not found, undef instead.
+
+    ['AA', '00', undef, undef, 'BC', undef]
+
+=item C<remove( $from, $count )>
+
+Removes $count bytes starting at address $from.
+
+=item C<write( $from, $bytes_ref )>
+
+(Over)writes bytes starting at address $from with bytes in $bytes_ref.
+
+=item C<as_intel_hex( $bytes_hex_a_line )>
+
+Returns a string containing hex bytes formated as intel hex.
+Extended linear addresses as offset are used if needed.
+Extended segment addresses are not supported.
+
+=item C<as_srec_hex( $bytes_hex_a_line )>
+
+Returns a string containing hex bytes formated as srec hex.
+Maximum of $hytes_hex_a_line in data field.
+Tries to use the smallest address field.
+
+=back
+
+=head1 LICENSE
+
+This is released under the Artistic License.
+
+=head1 AUTHOR
+
+spebern <bernhard@specht.net>
+
