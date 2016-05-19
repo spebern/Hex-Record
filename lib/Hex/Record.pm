@@ -3,7 +3,7 @@ package Hex::Record;
 use strict;
 use warnings;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 sub new {
     my ($class, %args) = @_;
@@ -11,6 +11,82 @@ sub new {
     $args{parts} = [] unless exists $args{parts};
 
     return bless \%args, $class;
+}
+
+sub import_intel_hex {
+    my ($self, $hex_string) = @_;
+
+    my $addr_high_dec = 0;
+
+    for my $line (split m{\n\r?}, $hex_string) {
+        my ($addr, $type, $bytes_str) = $line =~ m{
+		  : # intel hex start
+		   [[:xdigit:]]{2}  # bytecount
+		  ([[:xdigit:]]{4}) # addr
+		  ([[:xdigit:]]{2}) # type
+		  ([[:xdigit:]] * ) # databytes
+	       	   [[:xdigit:]]{2}  # checksum
+	      }ix or next;
+
+        my @bytes = unpack('(A2)*', $bytes_str);
+
+        # data line?
+        if ($type == 0) {
+            $self->write($addr_high_dec + hex $addr, \@bytes);
+        }
+        # extended linear address type?
+        elsif ($type == 4) {
+            $addr_high_dec = hex( join '', @bytes ) << 16;
+        }
+        # extended segment address type?
+        elsif ($type == 2) {
+            $addr_high_dec = hex( join '', @bytes ) << 4;
+        }
+    }
+
+    return;
+}
+
+sub import_srec_hex {
+    my ($self, $hex_string) = @_;
+
+    my %address_length_of_srec_type = (
+        0 => '4',
+        1 => '4',
+        2 => '6',
+        3 => '8',
+        4 => undef,
+        5 => '4',
+        6 => '6',
+        7 => '8',
+        8 => '6',
+        9 => '4',
+    );
+
+    my @parts;
+    for my $line (split m{\n\r?}, $hex_string) {
+        next unless substr( $line, 0, 1 ) =~ m{s}i;
+
+        my $type = substr $line, 1, 1;
+
+        my $addr_length = $address_length_of_srec_type{$type};
+
+        my ($addr, $bytes_str) = $line =~ m{
+		      s #srec hex start
+		   [[:xdigit:]]{1}             #type
+		   [[:xdigit:]]{2}              #bytecount
+		  ([[:xdigit:]]{$addr_length})  #addr
+		  ([[:xdigit:]] * )             #databytes
+		   [[:xdigit:]]{2}              #checksum
+	      }ix or next;
+
+        #data line?
+        if ($type == 0 || $type == 1 || $type == 2 || $type == 3) {
+            $self->write(hex $addr, [ unpack '(A2)*', $bytes_str ]);
+        }
+    }
+
+    return;
 }
 
 sub write {
@@ -97,7 +173,7 @@ sub get {
 
                     else {
                         # fill gap betwenn this part and part before with undef
-                        my $part_before             = $self->{parts}->[$part_i - 1];
+                        my $part_before          = $self->{parts}->[$part_i - 1];
                         my $part_before_end_addr = $part_before->{start} + $#{$part_before->{bytes}};
 
                         push @bytes_hex, (undef) x ($start_addr - $part_before_end_addr);
