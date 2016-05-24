@@ -1,177 +1,141 @@
 use strict;
 use warnings;
 use Test::More;
-BEGIN { plan tests => 8 }
-use Test::Warn;
-use Hex::Record::Parser qw(parse_srec_hex);
+BEGIN { plan tests => 6 }
 
-my ($srec_hex_string, $parts_expected, $parts_ref);
+use Hex::Record;
 
-$srec_hex_string = <<'END_HEX_RECORD';
-S10C000000010203040506070809C6
-S10C000A101112131415161718191C
-S10C00142021222324252627282972
-END_HEX_RECORD
-
-$parts_expected = [
-    {               
-        start => 0x0,
-        bytes => [
-            qw(00 01 02 03 04 05 06 07 08 09
-               10 11 12 13 14 15 16 17 18 19
-               20 21 22 23 24 25 26 27 28 29),
-        ],
-    },
-];
-
-$parts_ref = parse_srec_hex( $srec_hex_string );
-
-is_deeply(
-    $parts_ref,
-    $parts_expected,
-    'parsed simple srec hex correctly');
-
-
-$srec_hex_string = <<'END_HEX_RECORD';
-S10C00142021222324252627282972
-S10C000A101112131415161718191C
-S10C000000010203040506070809C6
-END_HEX_RECORD
-
-
-$parts_ref = parse_srec_hex( $srec_hex_string );
-
-is_deeply(
-    $parts_ref,
-    $parts_expected,
-    'parsed simple srec hex in wrong order correctly');
-
-
-$srec_hex_string = <<'END_HEX_RECORD';
-S10C000000010203040506070809C6
-S10C0009101112131415161718191D
-S10C00142021222324252627282972
-END_HEX_RECORD
-
-
-$parts_expected = [
+my @tests = (
     {
-        start => 0x0,
-        bytes => [
-            qw(00 01 02 03 04 05 06 07 08 10
-               11 12 13 14 15 16 17 18 19),
+        case      => 'simple srec hex (in order)',
+        srec_hex =>
+            "S10C000000010203040506070809C6\n"
+          . "S10C000A101112131415161718191C\n"
+          . "S10C00142021222324252627282972\n",
+        parts_exp => [
+            {
+                start => 0x0,
+                bytes => [
+                    qw(00 01 02 03 04 05 06 07 08 09
+                       10 11 12 13 14 15 16 17 18 19
+                       20 21 22 23 24 25 26 27 28 29),
+                ],
+            },
         ],
     },
     {
-        start => 0x14,
-        bytes => [
-            qw(20 21 22 23 24 25 26 27 28 29),
-        ],
-    },
-];
-
-warning_is
-    { $parts_ref = parse_srec_hex( $srec_hex_string ) }
-    "colliding parts: 0 .. 10 with part: 9 .. 19 ... overwriting",
-    "warned of colliding parts";
-
-is_deeply(
-    $parts_ref,
-    $parts_expected,
-    'parsed srec hex with simple overwrite, two parts');
-
-$srec_hex_string = <<'END_HEX_RECORD';
-S10C000000010203040506070809C6
-S10C00031011121314151617181923
-S10C00052021222324252627282981
-END_HEX_RECORD
-
-$parts_expected = [
-    {
-        start => 0x0,
-        bytes => [
-            qw(00 01 02 10 11 20 21 22 23 24
-               25 26 27 28 29),
-        ],
-    },
-];
-
-warnings_are
-    { $parts_ref = parse_srec_hex( $srec_hex_string ) }
-    [ "colliding parts: 0 .. 10 with part: 3 .. 13 ... overwriting",
-      "colliding parts: 0 .. 13 with part: 5 .. 15 ... overwriting", ],
-    "warned of colliding parts";
-
-is_deeply(
-    $parts_ref,
-    $parts_expected,
-    'parsed srec hex with simple overwrite, two parts');
-    
-$srec_hex_string = <<'END_HEX_RECORD';
-S20C010000FFFFFFFFFFFFFFFFFF33C8
-S20CFF000100112233445566778899F6
-S20C10000A99887766554433221100DC
-END_HEX_RECORD
-
-$parts_expected = [
-    {
-        start => 0x10000,
-        bytes => [
-            qw(FF FF FF FF FF FF FF FF FF 33),
+        case      => 'simple srec hex (not in order)',
+        srec_hex =>
+            "S10C00142021222324252627282972\n"
+          . "S10C000A101112131415161718191C\n"
+          . "S10C000000010203040506070809C6\n",
+        parts_exp => [
+            {
+                start => 0x0,
+                bytes => [
+                    qw(00 01 02 03 04 05 06 07 08 09
+                       10 11 12 13 14 15 16 17 18 19
+                       20 21 22 23 24 25 26 27 28 29),
+                ],
+            },
         ],
     },
     {
-        start => 0x10000A,
-        bytes => [
-            qw(99 88 77 66 55 44 33 22 11 00),
+        case      => 'colliding parts',
+        srec_hex =>
+            "S10C000000010203040506070809C6\n"
+          . "S10C0009101112131415161718191D\n"
+          . "S10C00142021222324252627282972\n",
+        parts_exp => [
+            {
+                start => 0x0,
+                bytes => [
+                    qw(00 01 02 03 04 05 06 07 08 10
+                       11 12 13 14 15 16 17 18 19),
+                ],
+            },
+            {
+                start => 0x14,
+                bytes => [
+                    qw(20 21 22 23 24 25 26 27 28 29),
+                ],
+            },
         ],
     },
     {
-        start => 0xFF0001,
-        bytes => [
-            qw(00 11 22 33 44 55 66 77 88 99),
-        ],
-    },
-];
-
-$parts_ref = parse_srec_hex( $srec_hex_string );
-
-is_deeply(
-    $parts_ref,
-    $parts_expected,
-    'parsed srec hex with 24 bit addresses correctly');
-
-$srec_hex_string = <<'END_HEX_RECORD';
-S30C01000001FFFFFFFFFFFFFFFFFF33C7
-S30CFF00010100112233445566778899F5
-S30C10000A0F99887766554433221100CD
-END_HEX_RECORD
-
-$parts_expected = [
-    {
-        start => 0x01000001,
-        bytes => [
-            qw(FF FF FF FF FF FF FF FF FF 33),
+        case      => 'multiple colliding parts',
+        srec_hex =>
+            "S10C000000010203040506070809C6\n"
+          . "S10C00031011121314151617181923\n"
+          . "S10C00052021222324252627282981\n",
+        parts_exp => [
+            {
+                start => 0x0,
+                bytes => [
+                    qw(00 01 02 10 11 20 21 22 23 24
+                       25 26 27 28 29),
+                ],
+            },
         ],
     },
     {
-        start => 0x10000A0F,
-        bytes => [
-            qw(99 88 77 66 55 44 33 22 11 00),
+        case      => '24 bit addresses',
+        srec_hex =>
+            "S20C010000FFFFFFFFFFFFFFFFFF33C8\n"
+          . "S20CFF000100112233445566778899F6\n"
+          . "S20C10000A99887766554433221100DC\n",
+        parts_exp => [
+            {
+                start => 0x10000,
+                bytes => [
+                    qw(FF FF FF FF FF FF FF FF FF 33),
+                ],
+            },
+            {
+                start => 0x10000A,
+                bytes => [
+                    qw(99 88 77 66 55 44 33 22 11 00),
+                ],
+            },
+            {
+                start => 0xFF0001,
+                bytes => [
+                    qw(00 11 22 33 44 55 66 77 88 99),
+                ],
+            },
         ],
     },
     {
-        start => 0xFF000101,
-        bytes => [
-            qw(00 11 22 33 44 55 66 77 88 99),
+        case      => '32 bit addresses',
+        srec_hex =>
+            "S30C01000001FFFFFFFFFFFFFFFFFF33C7\n"
+          . "S30CFF00010100112233445566778899F5\n"
+          . "S30C10000A0F99887766554433221100CD\n",
+        parts_exp => [
+            {
+                start => 0x01000001,
+                bytes => [
+                    qw(FF FF FF FF FF FF FF FF FF 33),
+                ],
+            },
+            {
+                start => 0x10000A0F,
+                bytes => [
+                    qw(99 88 77 66 55 44 33 22 11 00),
+                ],
+            },
+            {
+                start => 0xFF000101,
+                bytes => [
+                    qw(00 11 22 33 44 55 66 77 88 99),
+                ],
+            },
         ],
     },
-];
+);
 
-$parts_ref = parse_srec_hex( $srec_hex_string );
-
-is_deeply(
-    $parts_ref,
-    $parts_expected,
-    'parsed srec hex with 32 bit addresses correctly');
-
+for my $test (@tests) {
+    my $hex_record = Hex::Record->new;
+    $hex_record->import_srec_hex($test->{srec_hex});
+    is_deeply($hex_record->{parts}, $test->{parts_exp}, $test->{case});
+}

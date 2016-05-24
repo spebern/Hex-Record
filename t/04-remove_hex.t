@@ -6,6 +6,8 @@ use Storable qw(dclone);
 
 use Hex::Record;
 
+use Data::Dumper;
+
 my $hex_original = Hex::Record->new(
     parts => [
         {
@@ -307,13 +309,12 @@ my @remove_bytes_tests = (
 );
 
 for my $remove_bytes_test (@remove_bytes_tests) {
-    my $hex_copy =  dclone $hex_original;
+    my $hex_copy = dclone $hex_original;
 
     my $from  = $remove_bytes_test->{from};
     my $count = $remove_bytes_test->{count};
 
-
-    $hex_copy->remove( $from, $count );
+    $hex_copy->remove($from, $count);
 
     is_deeply(
         $hex_copy->{parts},

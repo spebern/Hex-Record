@@ -5,6 +5,8 @@ BEGIN { plan tests => 7 }
 
 use Hex::Record;
 
+use Data::Dumper;
+
 my ($hex, @bytes, @bytes_expected, $first_hex_part_expected);
 
 $hex = Hex::Record->new(
@@ -12,7 +14,7 @@ $hex = Hex::Record->new(
         {
             start => 0x0,
             bytes => [
-                qw(00 11 22 33 44 55 66 77 88 99),
+                qw(00 11 22 33 44 55 66 77 88),
             ],
         },
         {
@@ -57,12 +59,12 @@ my @get_bytes_tests = (
     {
         from     => 0x0,
         count    => 13,
-        expected => [ qw(00 11 22 33 44 55 66 77 88 99), undef, qw(AA), undef, undef, qw(CC) ],
+        expected => [ qw(00 11 22 33 44 55 66 77 88), undef, qw(AA), undef, qw(CC) ],
     },
     {
         from     => 0x0,
-        count    => 10,
-        expected => [ qw(00 11 22 33 44 55 66 77 88 99) ],
+        count    => 9,
+        expected => [ qw(00 11 22 33 44 55 66 77 88) ],
     },
     {
         from     => 0x0,
@@ -97,13 +99,15 @@ my @get_bytes_tests = (
     },
 );
 
-for my $get_bytes_test ( @get_bytes_tests ){
+for my $get_bytes_test (@get_bytes_tests) {
     my $from  = $get_bytes_test->{from};
     my $count = $get_bytes_test->{count};
 
     my $bytes_expected_ref = $get_bytes_test->{expected};
 
-    is_deeply( $hex->get($from, $count),
-               $bytes_expected_ref,
-               "expected $count bytes correctly from $from" );
+    is_deeply(
+        $hex->get($from, $count),
+        $bytes_expected_ref,
+        "expected $count bytes correctly from $from"
+    );
 }

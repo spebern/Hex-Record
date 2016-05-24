@@ -2,6 +2,9 @@ package Hex::Record;
 
 use strict;
 use warnings;
+use Carp;
+
+use Data::Dumper;
 
 our $VERSION = '0.06';
 
@@ -96,8 +99,7 @@ sub write {
 
     my $to = $from + @$bytes_hex_ref;
 
-    # insert part
-    for (my $part_i = 0; $part_i < @{$self->{parts}}; $part_i++){
+    for (my $part_i = 0; $part_i < @{$self->{parts}}; $part_i++) {
         my $part = $self->{parts}->[$part_i];
 
         my $start_addr = $part->{start};
@@ -135,72 +137,83 @@ sub write {
         start => $from,
         bytes => $bytes_hex_ref
     };
+
     return;
 }
 
 sub get {
     my ($self, $from, $length) = @_;
 
-    my $to = $from + $length - 1;
+    my @bytes;
+    my $end_last = $from;
+    my $get = sub {
+        my ($part, $part_i_ref, $overlap) = @_;
 
-    my @bytes_hex;
-    for (my $part_i = 0; $part_i < @{$self->{parts}}; $part_i++){
-        my $part = $self->{parts}->[$part_i];
+        my $gap = $part->{start} - $end_last;
+        push @bytes, (undef) x $gap if $gap > 0;
 
-        my $start_addr = $part->{start};
-        my $end_addr   = $part->{start} + $#{$part->{bytes}};
-
-        # from inside this part
-        if ($from >= $start_addr && $from <= $end_addr){
-
-            # this part also includes end
-            if ($to <= $end_addr){
-                @bytes_hex = @{$part->{bytes}}[ $from - $start_addr .. $to - $start_addr ];
-                return \@bytes_hex;
-            }
-            else {
-                @bytes_hex = @{$part->{bytes}}[ $from - $start_addr .. $#{$part->{bytes}} ];
-
-                while (++$part_i < @{$self->{parts}}){
-                    my $part = $self->{parts}->[$part_i];
-
-                    my $start_addr = $part->{start};
-                    my $end_addr   = $part->{start} + $#{$part->{bytes}};
-                    # desired part ended before this one
-                    if ( $to < $start_addr ){
-                        return [@bytes_hex, (undef) x ($length - @bytes_hex)];
-                    }
-
-                    else {
-                        # fill gap betwenn this part and part before with undef
-                        my $part_before          = $self->{parts}->[$part_i - 1];
-                        my $part_before_end_addr = $part_before->{start} + $#{$part_before->{bytes}};
-
-                        push @bytes_hex, (undef) x ($start_addr - $part_before_end_addr);
-
-                        if ( $to <= $end_addr ){
-                            push @bytes_hex, @{$part->{bytes}}[ 0 .. $to - $start_addr ];
-                            return \@bytes_hex;
-                        }
-
-                        push @bytes_hex, @{$part->{bytes}};
-                    }
-                }
-            }
+        if ($overlap eq 'a') {
+            push @bytes, @{ $part->{bytes} };
+        }
+        elsif ($overlap eq 'l') {
+            push @bytes, @{ $part->{bytes} }[ 0 .. $length - 1 ];
+        }
+        elsif ($overlap eq 'r') {
+            push @bytes, @{ $part->{bytes} }[ $from - $part->{start} .. $#{ $part->{bytes} } ];
+        }
+        elsif ($overlap eq 'm') {
+            my $start_i = $from - $part->{start};
+            push @bytes, @{ $part->{bytes} }[ $start_i .. $start_i + $length ];
         }
 
-        # did not find start, but did find end
-        elsif ($to <= $end_addr  && $to >= $start_addr){
-            @bytes_hex = ( (undef) x ($start_addr - $from),
-                       @{$part->{bytes}}[ 0 .. $to - $start_addr ] );
-            return \@bytes_hex;
-        }
-    }
-    return [@bytes_hex, (undef) x ($length - @bytes_hex)];
+        $end_last = $part->{start} + @{ $part->{bytes} };
+    };
+
+    $self->_traverse($from, $length, $get);
+
+    return [ @bytes, (undef) x ($length - @bytes) ];
 }
 
 sub remove {
     my ($self, $from, $length) = @_;
+
+    my $to = $from + $length;
+
+    my $remove = sub {
+        my ($part, $part_i_ref, $overlap) = @_;
+        if ($overlap eq 'a') {
+            splice @{ $self->{parts} }, $$part_i_ref, 1;
+            --$$part_i_ref;
+        }
+        elsif ($overlap eq 'l') {
+            splice @{ $part->{bytes} }, 0, $length;
+            $part->{start} += $length;
+        }
+        elsif ($overlap eq 'r') {
+            splice @{ $part->{bytes} }, $from - $part->{start};
+        }
+        elsif ($overlap eq 'm') {
+            splice @{ $self->{parts} }, $$part_i_ref, 1,
+                {
+                    start => $part->{start},
+                    bytes => [ @{ $part->{bytes} }[ 0 .. $from - $part->{start} - 1 ] ],
+                },
+                {
+                    start => $from + $length,
+                    bytes => [ @{ $part->{bytes} }[
+                        $from - $part->{start} + $length .. $#{ $part->{bytes} }
+                    ] ],
+                };
+        };
+    };
+
+    $self->_traverse($from, $length, $remove);
+
+    return;
+}
+
+sub _traverse {
+    my ($self, $from, $length, $process) = @_;
 
     my $to = $from + $length;
 
@@ -210,61 +223,37 @@ sub remove {
         my $start_addr = $part->{start};
         my $end_addr   = $part->{start} + @{$part->{bytes}};
 
-        if ($from < $end_addr){
-            if ($to <= $end_addr){
-                if ($from <= $start_addr){
-                    if ($to == $end_addr){
-                        splice @{$self->{parts}}, $part_i, 1;
-                    }
-                    else {
-                        splice @{$part->{bytes}}, 0, @{$part->{bytes}} - $end_addr + $to;
-                        $part->{start} = $to;
-                    }
+        if ($from < $end_addr && $to > $start_addr) {
+            if ($from <= $start_addr) {
+                if ($to < $end_addr -1) {
+                    $process->($part, \$part_i, 'l');
                     return;
                 }
-                elsif ($to == $end_addr){
-                    splice @{$part->{bytes}}, $from-$start_addr, $length;
-                }
-                else {
-                    splice @{$self->{parts}}, $part_i, 1, (
-                        {
-                            start => $start_addr,
-                            bytes => [@{$part->{bytes}}[ 0 .. $from - $start_addr - 1]],
-                        },
-                        {
-                            start => $from + $length,
-                            bytes => [@{$part->{bytes}}[ $from - $start_addr + $length .. $#{$part->{bytes}}]],
-                        },
-                    );
-                }
+                $process->($part, \$part_i, 'a');
+            }
+            elsif ($to < $end_addr - 1) {
+                $process->($part, \$part_i, 'm');
                 return;
             }
             else {
-                splice @{$self->{parts}}, $part_i, 1;
-                --$part_i;
+                $process->($part, $part_i, 'r');
             }
-            while (++$part_i < @{$self->{parts}}){
-                my $part = $self->{parts}->[$part_i];
 
+            # found start -> search for end
+            while ( defined (my $part = $self->{parts}->[++$part_i]) ) {
                 my $start_addr = $part->{start};
-                return if $to < $start_addr;
+                return if $start_addr > $to;
 
-                my $end_addr = $part->{start} + $#{$part->{bytes}};
+                my $end_addr = $part->{start} + @{$part->{bytes}};
 
-                if ($to < $end_addr){
-                    splice @{$part->{bytes}}, 0, $to - $start_addr;
-                    $part->{start} = $to;
+                if ($to >= $end_addr) {
+                    $process->($part, \$part_i, 'a');
+                }
+                else {
+                    $process->($part, \$part_i, 'l');
                     return;
                 }
-                splice @{$self->{parts}}, $part_i, 1;
-                --$part_i;
-
-                return if $to == $end_addr;
             }
-        }
-        elsif ($to <= $end_addr){
-            splice @{$part->{bytes}}, 0, $to - $start_addr;
-            $part->{bytes} = $to;
             return;
         }
     }
@@ -388,7 +377,7 @@ sub _srec_hex_line_of {
         $type = 3;
     }
     else {
-        die "$total_addr_hex to big for 32 bit address";
+        croak "$total_addr_hex to big for 32 bit address";
     }
 
     # count of data bytes + address bytes
