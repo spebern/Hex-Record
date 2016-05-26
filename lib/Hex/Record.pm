@@ -97,33 +97,33 @@ sub write {
 
     my $to = $from + @$bytes_hex_ref;
 
-    for (my $part_i = 0; $part_i < @{$self->{parts}}; $part_i++) {
+    for (my $part_i = 0; $part_i < @{ $self->{parts} }; $part_i++) {
         my $part = $self->{parts}->[$part_i];
 
         my $start_addr = $part->{start};
-        my $end_addr   = $part->{start} + $#{$part->{bytes}};
+        my $end_addr   = $part->{start} + $#{ $part->{bytes} };
 
         # merge with this part
         if ($to == $start_addr) {
             $part->{start} = $from;
-            unshift @{$part->{bytes}}, @$bytes_hex_ref;
+            unshift @{ $part->{bytes} }, @$bytes_hex_ref;
             return;
         }
         elsif ($from == $end_addr + 1) {
-            push @{$part->{bytes}}, @$bytes_hex_ref;
+            push @{ $part->{bytes} }, @$bytes_hex_ref;
 
-            return if $part_i+1 == @{$self->{parts}};
+            return if $part_i+1 == @{ $self->{parts} };
 
             my $next_part = $self->{parts}->[$part_i+1];
             # merge with next part
             if ($to == $next_part->{start}) {
-                push @{$part->{bytes}}, @{$next_part->{bytes}};
-                splice @{$self->{parts}}, $part_i+1, 1;
+                push @{ $part->{bytes} }, @{ $next_part->{bytes} };
+                splice @{ $self->{parts} }, $part_i+1, 1;
             }
             return;
         }
         elsif ($from < $start_addr) {
-            splice @{$self->{parts}}, $part_i, 0, {
+            splice @{ $self->{parts} }, $part_i, 0, {
                 start => $from,
                 bytes => $bytes_hex_ref
             };
@@ -131,7 +131,7 @@ sub write {
         }
     }
 
-    push @{$self->{parts}}, {
+    push @{ $self->{parts} }, {
         start => $from,
         bytes => $bytes_hex_ref
     };
@@ -216,11 +216,11 @@ sub _traverse {
 
     my $to = $from + $length;
 
-    for (my $part_i = 0; $part_i < @{ $self->{parts} }; $part_i++){
+    for (my $part_i = 0; $part_i < @{ $self->{parts} }; $part_i++) {
         my $part = $self->{parts}->[$part_i];
 
         my $start_addr = $part->{start};
-        my $end_addr   = $part->{start} + @{$part->{bytes}};
+        my $end_addr   = $part->{start} + @{ $part->{bytes} };
 
         if ($from < $end_addr && $to > $start_addr) {
             if ($from <= $start_addr) {
@@ -243,7 +243,7 @@ sub _traverse {
                 my $start_addr = $part->{start};
                 return if $start_addr > $to;
 
-                my $end_addr = $part->{start} + @{$part->{bytes}};
+                my $end_addr = $part->{start} + @{ $part->{bytes} };
 
                 if ($to >= $end_addr) {
                     $process->($part, \$part_i, 'a');
@@ -262,33 +262,41 @@ sub as_intel_hex {
     my ($self, $bytes_hex_a_line) = @_;
 
     my $intel_hex_string = '';
-    for (my $part_i = 0; $part_i < @{ $self->{parts} }; $part_i++){
+    for (my $part_i = 0; $part_i < @{ $self->{parts} }; $part_i++) {
         my $part = $self->{parts}->[$part_i];
 
         my $start_addr = $part->{start};
-        my $end_addr   = $part->{start} + $#{$part->{bytes}};
+        my $end_addr   = $part->{start} + $#{ $part->{bytes} };
 
         my $cur_high_addr_hex = '0000';
 
-        for (my $slice_i = 0; $slice_i * $bytes_hex_a_line < @{$part->{bytes}}; $slice_i++){
+        for (my $slice_i = 0; $slice_i * $bytes_hex_a_line < @{ $part->{bytes} }; $slice_i++) {
             my $total_addr = $start_addr + $slice_i*$bytes_hex_a_line;
 
             my ($addr_high_hex, $addr_low_hex) = unpack '(A4)*', sprintf('%08X', $total_addr);
 
-            if ($cur_high_addr_hex ne $addr_high_hex){
+            if ($cur_high_addr_hex ne $addr_high_hex) {
                 $cur_high_addr_hex = $addr_high_hex;
                 $intel_hex_string .=  _intel_hex_line_of( '0000', 4, [unpack '(A2)*', $cur_high_addr_hex]);
             }
 
-            if (($slice_i + 1) * $bytes_hex_a_line <=  $#{$part->{bytes}}){
+            if ( ($slice_i + 1) * $bytes_hex_a_line <=  $#{ $part->{bytes} } ) {
                 $intel_hex_string .= _intel_hex_line_of(
                     $addr_low_hex, 0,
-                    [ @{$part->{bytes}}[ $slice_i * $bytes_hex_a_line .. ($slice_i + 1) * $bytes_hex_a_line - 1 ] ]
+                    [
+                        @{ $part->{bytes} }[
+                            $slice_i * $bytes_hex_a_line .. ($slice_i + 1) * $bytes_hex_a_line - 1
+                        ]
+                    ]
                 );
             }
             else {
                 $intel_hex_string .= _intel_hex_line_of(
-                    $addr_low_hex, 0, [ @{$part->{bytes}}[ $slice_i * $bytes_hex_a_line .. $#{$part->{bytes}} ] ]
+                    $addr_low_hex, 0, [
+                        @{ $part->{bytes} }[
+                            $slice_i * $bytes_hex_a_line .. $#{ $part->{bytes} }
+                        ]
+                    ]
                 );
             }
         }
@@ -328,25 +336,25 @@ sub as_srec_hex {
     my ($self, $bytes_hex_a_line) = @_;
 
     my $srec_hex_string = '';
-    for (my $part_i = 0; $part_i < @{ $self->{parts} }; $part_i++){
+    for (my $part_i = 0; $part_i < @{ $self->{parts} }; $part_i++) {
         my $part = $self->{parts}->[$part_i];
 
         my $start_addr = $part->{start};
-        my $end_addr   = $part->{start} + $#{$part->{bytes}};
+        my $end_addr   = $part->{start} + $#{ $part->{bytes} };
 
-        for (my $slice_i = 0; $slice_i * $bytes_hex_a_line < @{$part->{bytes}}; $slice_i++){
+        for (my $slice_i = 0; $slice_i * $bytes_hex_a_line < @{ $part->{bytes} }; $slice_i++) {
             my $total_addr = $start_addr + $slice_i*$bytes_hex_a_line;
 
-            if (($slice_i + 1) * $bytes_hex_a_line <=  $#{$part->{bytes}}){
+            if ( ($slice_i + 1) * $bytes_hex_a_line <=  $#{ $part->{bytes} } ) {
                 $srec_hex_string .= _srec_hex_line_of(
                     $total_addr,
-                    [@{$part->{bytes}}[$slice_i * $bytes_hex_a_line .. ($slice_i + 1) * $bytes_hex_a_line - 1]]
+                    [@{ $part->{bytes} }[$slice_i * $bytes_hex_a_line .. ($slice_i + 1) * $bytes_hex_a_line - 1]]
                 );
             }
             else {
                 $srec_hex_string .= _srec_hex_line_of(
                     $total_addr,
-                    [@{$part->{bytes}}[$slice_i * $bytes_hex_a_line .. $#{$part->{bytes}}]]
+                    [@{ $part->{bytes} }[$slice_i * $bytes_hex_a_line .. $#{ $part->{bytes} }]]
                 );
             }
         }
@@ -362,16 +370,16 @@ sub _srec_hex_line_of {
 
     my $type;
     # 16 bit addr
-    if (length $total_addr_hex == 4){
+    if (length $total_addr_hex == 4) {
         $type = 1;
     }
     # 24 bit addr
-    elsif (length $total_addr_hex <= 6){
+    elsif (length $total_addr_hex <= 6) {
         $total_addr_hex = "0$total_addr_hex" if length $total_addr_hex == 5;
         $type = 2;
     }
     # 32 bit addr
-    elsif (length $total_addr_hex <= 8){
+    elsif (length $total_addr_hex <= 8) {
         $total_addr_hex = "0$total_addr_hex" if length $total_addr_hex == 7;
         $type = 3;
     }
@@ -486,8 +494,6 @@ Extended segment addresses are not supported. (yet? let me know!)
 Returns a string containing hex bytes formatted as srec hex.
 Maximum of $bytes_hex_a_line in data field.
 Tries to use the smallest address field. (16 bit, 24 bit, 32 bit)
-
-=back
 
 =head1 LICENSE
 
