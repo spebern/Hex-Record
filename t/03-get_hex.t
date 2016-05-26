@@ -1,11 +1,9 @@
 use strict;
 use warnings;
 use Test::More;
-BEGIN { plan tests => 7 }
+BEGIN { plan tests => 8 }
 
 use Hex::Record;
-
-use Data::Dumper;
 
 my ($hex, @bytes, @bytes_expected, $first_hex_part_expected);
 
@@ -56,6 +54,11 @@ $hex = Hex::Record->new(
 
 # get
 my @get_bytes_tests = (
+    {
+        from     => 0x1,
+        count    => 2,
+        expected => [ qw(11 22) ],
+    },
     {
         from     => 0x0,
         count    => 13,

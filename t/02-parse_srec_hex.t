@@ -9,7 +9,8 @@ my @tests = (
     {
         case      => 'simple srec hex (in order)',
         srec_hex =>
-            "S10C000000010203040506070809C6\n"
+            "# some initial comment\n"
+          . "S10C000000010203040506070809C6\n"
           . "S10C000A101112131415161718191C\n"
           . "S10C00142021222324252627282972\n",
         parts_exp => [
@@ -26,7 +27,8 @@ my @tests = (
     {
         case      => 'simple srec hex (not in order)',
         srec_hex =>
-            "S10C00142021222324252627282972\n"
+            "s invalid line\n"
+          . "S10C00142021222324252627282972\n"
           . "S10C000A101112131415161718191C\n"
           . "S10C000000010203040506070809C6\n",
         parts_exp => [
@@ -43,7 +45,8 @@ my @tests = (
     {
         case      => 'colliding parts',
         srec_hex =>
-            "S10C000000010203040506070809C6\n"
+            "s1invalid line\n"
+          . "S10C000000010203040506070809C6\n"
           . "S10C0009101112131415161718191D\n"
           . "S10C00142021222324252627282972\n",
         parts_exp => [
@@ -65,7 +68,8 @@ my @tests = (
     {
         case      => 'multiple colliding parts',
         srec_hex =>
-            "S10C000000010203040506070809C6\n"
+            "S00C000000010203040506070809C6\n"
+          . "S10C000000010203040506070809C6\n"
           . "S10C00031011121314151617181923\n"
           . "S10C00052021222324252627282981\n",
         parts_exp => [

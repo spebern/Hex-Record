@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
-BEGIN { plan tests => 11 }
+BEGIN { plan tests => 12 }
 use Storable qw(dclone);
 
 use Hex::Record;
@@ -42,6 +42,18 @@ my $hex_original = Hex::Record->new(
 );
 
 my @remove_bytes_tests = (
+    {
+        from  => 0,
+        count => 0x1001,
+        expected_parts => [
+            {
+                start => 0x1001,
+                bytes => [
+                    qw(FF FF),
+                ],
+            },
+        ],
+    },
     {
         from  => 0,
         count => 1,

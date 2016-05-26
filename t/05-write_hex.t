@@ -24,6 +24,10 @@ $hex->write(80,   [ map { sprintf "%2X", $_ }  0 .. 99 ]);
 $hex->write(1010, [ map { sprintf "%2X", $_ } 10 .. 19 ]);
 $hex->write(1000, [ map { sprintf "%2X", $_ }  0 ..  9 ]);
 
+$hex->write(1990, [ map { sprintf "%2X", $_ }  0 .. 9 ]);
+$hex->write(2010, [ map { sprintf "%2X", $_ } 20 .. 29 ]);
+$hex->write(2000, [ map { sprintf "%2X", $_ } 10 .. 19 ]);
+
 
 my $parts_expected = [
     {
@@ -45,6 +49,10 @@ my $parts_expected = [
     {
         start => 1000,
         bytes => [ map { sprintf "%2X", $_ }  0 .. 19]
+    },
+    {
+        start => 1990,
+        bytes => [ map { sprintf "%2X", $_ }  0 .. 29]
     },
 ];
 

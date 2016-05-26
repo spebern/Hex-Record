@@ -72,7 +72,7 @@ sub import_srec_hex {
 
         my $type = substr $line, 1, 1;
 
-        my $addr_length = $address_length_of_srec_type{$type};
+        my $addr_length = $address_length_of_srec_type{$type} // next;
 
         my ($addr, $bytes_str) = $line =~ m{
 		      s #srec hex start
@@ -83,8 +83,8 @@ sub import_srec_hex {
 		   [[:xdigit:]]{2}              #checksum
 	      }ix or next;
 
-        #data line?
-        if ($type == 0 || $type == 1 || $type == 2 || $type == 3) {
+        # data line?
+        if ($type == 1 || $type == 2 || $type == 3) {
             $self->write(hex $addr, [ unpack '(A2)*', $bytes_str ]);
         }
     }
@@ -106,25 +106,25 @@ sub write {
         my $end_addr   = $part->{start} + $#{$part->{bytes}};
 
         # merge with this part
-        if ($to == $start_addr){
+        if ($to == $start_addr) {
             $part->{start} = $from;
             unshift @{$part->{bytes}}, @$bytes_hex_ref;
             return;
         }
-        elsif ($from == $end_addr + 1){
+        elsif ($from == $end_addr + 1) {
             push @{$part->{bytes}}, @$bytes_hex_ref;
 
             return if $part_i+1 == @{$self->{parts}};
 
             my $next_part = $self->{parts}->[$part_i+1];
             # merge with next part
-            if ($to == $next_part->{start}){
+            if ($to == $next_part->{start}) {
                 push @{$part->{bytes}}, @{$next_part->{bytes}};
                 splice @{$self->{parts}}, $part_i+1, 1;
             }
             return;
         }
-        elsif ($from < $start_addr){
+        elsif ($from < $start_addr) {
             splice @{$self->{parts}}, $part_i, 0, {
                 start => $from,
                 bytes => $bytes_hex_ref
@@ -161,9 +161,9 @@ sub get {
         elsif ($overlap eq 'r') {
             push @bytes, @{ $part->{bytes} }[ $from - $part->{start} .. $#{ $part->{bytes} } ];
         }
-        elsif ($overlap eq 'm') {
+        else {
             my $start_i = $from - $part->{start};
-            push @bytes, @{ $part->{bytes} }[ $start_i .. $start_i + $length ];
+            push @bytes, @{ $part->{bytes} }[ $start_i .. $start_i + $length - 1];
         }
 
         $end_last = $part->{start} + @{ $part->{bytes} };
@@ -186,13 +186,14 @@ sub remove {
             --$$part_i_ref;
         }
         elsif ($overlap eq 'l') {
-            splice @{ $part->{bytes} }, 0, $length;
-            $part->{start} += $length;
+            my $to_remove = $to - $part->{start};
+            splice @{ $part->{bytes} }, 0, $to_remove;
+            $part->{start} += $to_remove;
         }
         elsif ($overlap eq 'r') {
             splice @{ $part->{bytes} }, $from - $part->{start};
         }
-        elsif ($overlap eq 'm') {
+        else {
             splice @{ $self->{parts} }, $$part_i_ref, 1,
                 {
                     start => $part->{start},
@@ -301,7 +302,7 @@ sub as_intel_hex {
 sub _intel_hex_line_of {
     my ($addr_low_hex, $type, $bytes_hex_ref) = @_;
 
-    my $byte_count = defined $bytes_hex_ref ? scalar @$bytes_hex_ref : 0;
+    my $byte_count = @$bytes_hex_ref;
 
     my $sum = 0;
     $sum += $_ for ( $byte_count, (map { hex $_ } unpack '(A2)*', $addr_low_hex),
@@ -381,8 +382,7 @@ sub _srec_hex_line_of {
     }
 
     # count of data bytes + address bytes
-    my $byte_count = defined $bytes_hex_ref ? scalar @$bytes_hex_ref : 0;
-    $byte_count   += length($total_addr_hex) / 2;
+    my $byte_count = @$bytes_hex_ref + length($total_addr_hex) / 2;
 
     my $sum = 0;
     $sum += $_ for ( $byte_count,
@@ -393,7 +393,6 @@ sub _srec_hex_line_of {
     $sum = substr(sprintf( '%02X', $sum ), -2);
 
     my $checksum_hex = sprintf '%02X', (hex $sum ^ 255);
-    $checksum_hex    = '00' if length $checksum_hex != 2;
 
     return join '',
         (
