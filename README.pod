@@ -80,8 +80,6 @@ Returns a string containing hex bytes formatted as srec hex.
 Maximum of $bytes_hex_a_line in data field.
 Tries to use the smallest address field. (16 bit, 24 bit, 32 bit)
 
-=back
-
 =head1 LICENSE
 
 This is released under the Artistic License.
