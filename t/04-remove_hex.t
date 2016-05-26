@@ -2,11 +2,9 @@ use strict;
 use warnings;
 use Test::More;
 BEGIN { plan tests => 12 }
-use Storable qw(dclone);
+use Clone qw(clone);
 
 use Hex::Record;
-
-use Data::Dumper;
 
 my $hex_original = Hex::Record->new(
     parts => [
@@ -321,7 +319,7 @@ my @remove_bytes_tests = (
 );
 
 for my $remove_bytes_test (@remove_bytes_tests) {
-    my $hex_copy = dclone $hex_original;
+    my $hex_copy = clone $hex_original;
 
     my $from  = $remove_bytes_test->{from};
     my $count = $remove_bytes_test->{count};

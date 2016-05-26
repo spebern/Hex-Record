@@ -52,7 +52,6 @@ my $hex = Hex::Record->new(
     ],
 );
 
-# dump as intel hex
 my $intel_hex_string_expected = <<'END_HEX';
 : 0A | 0000 | 00 | 00 11 22 33 44 55 66 77 88 99 | F9
 : 01 | 000B | 00 | BB                            | 39

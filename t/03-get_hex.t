@@ -5,9 +5,7 @@ BEGIN { plan tests => 8 }
 
 use Hex::Record;
 
-my ($hex, @bytes, @bytes_expected, $first_hex_part_expected);
-
-$hex = Hex::Record->new(
+my $hex = Hex::Record->new(
     parts => [
         {
             start => 0x0,

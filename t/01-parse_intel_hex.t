@@ -3,7 +3,6 @@ use warnings;
 use Test::More;
 BEGIN { plan tests => 6 }
 use Test::Warn;
-use lib '/home/ben/workspace/perl5/Hex-Record/lib';
 use Hex::Record;
 
 my @tests = (
