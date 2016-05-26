@@ -5,8 +5,6 @@ BEGIN { plan tests => 1 }
 
 use Hex::Record;
 
-use Data::Dumper;
-
 my $hex = Hex::Record->new();
 # merge two parts
 $hex->write(0,    [ map { sprintf "%2X", $_ }  0 .. 19 ]);

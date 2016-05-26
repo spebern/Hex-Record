@@ -52,16 +52,16 @@ sub import_srec_hex {
     my ($self, $hex_string) = @_;
 
     my %address_length_of_srec_type = (
-        0 => '4',
-        1 => '4',
-        2 => '6',
-        3 => '8',
+        0 => 4,
+        1 => 4,
+        2 => 6,
+        3 => 8,
         4 => undef,
-        5 => '4',
-        6 => '6',
-        7 => '8',
-        8 => '6',
-        9 => '4',
+        5 => 4,
+        6 => 6,
+        7 => 8,
+        8 => 6,
+        9 => 4,
     );
 
     my @parts;
@@ -70,7 +70,7 @@ sub import_srec_hex {
 
         my $type = substr $line, 1, 1;
 
-        my $addr_length = $address_length_of_srec_type{$type} // next;
+        my $addr_length = $address_length_of_srec_type{$type} || next;
 
         my ($addr, $bytes_str) = $line =~ m{
 		      s #srec hex start
@@ -441,7 +441,7 @@ Hex::Record - manipulate intel and srec hex records
 
   # dump as srec hex (always tries to use smallest address, 16 bit, 24 bit, 32 bit)
   # maximum of 10 bytes in data field
-  my $srec_hex_string = $hex_record->as_screc_hex(10);
+  my $srec_hex_string = $hex_record->as_srec_hex(10);
 
 =head1 DESCRIPTION
 
