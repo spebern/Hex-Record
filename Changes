@@ -7,3 +7,6 @@ Revision history for Hex-Record
         - less repeat yourself
         - coverage 100%
         - bug fixes
+0.06    Date/time
+        - removed die for address to big,
+          there will be a warning of perl itself

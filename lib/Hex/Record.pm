@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 sub new {
     my ($class, %args) = @_;
@@ -379,12 +379,9 @@ sub _srec_hex_line_of {
         $type = 2;
     }
     # 32 bit addr
-    elsif (length $total_addr_hex <= 8) {
+    else {
         $total_addr_hex = "0$total_addr_hex" if length $total_addr_hex == 7;
         $type = 3;
-    }
-    else {
-        croak "$total_addr_hex to big for 32 bit address";
     }
 
     # count of data bytes + address bytes

@@ -2,8 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
-BEGIN { plan tests => 2 }
-no warnings 'portable';
+BEGIN { plan tests => 1 }
 
 use Hex::Record;
 
@@ -83,20 +82,4 @@ END_HEX
 
     my $srec_hex_string = $hex->as_srec_hex(10);
     is( $srec_hex_string, $srec_hex_string_expected, 'dumped correctly as srec hex' );
-}
-
-{ # addr to big
-    my $hex = Hex::Record->new(
-        parts => [
-            {
-                start => 0x100000000,
-                bytes => [
-                    qw(00),
-                ],
-            },
-        ]
-    );
-    dies_ok {
-        $hex->as_srec_hex(10);
-    } 'dies if total addr is to bif for 32 bit';
 }
