@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 sub new {
     my ($class, %args) = @_;
@@ -486,11 +486,15 @@ Maximum of $bytes_hex_a_line in data field.
 Extended linear addresses as offset are used if needed.
 Extended segment addresses are not supported. (yet? let me know!)
 
+  my $intel_hex_str = $hex_record->as_intel_hex(10);
+
 =head2 as_srec_hex($bytes_hex_a_line)
 
 Returns a string containing hex bytes formatted as srec hex.
 Maximum of $bytes_hex_a_line in data field.
 Tries to use the smallest address field. (16 bit, 24 bit, 32 bit)
+
+  my $srec_hex_str = $hex_record->as_srec_hex(10);
 
 =head1 LICENSE
 

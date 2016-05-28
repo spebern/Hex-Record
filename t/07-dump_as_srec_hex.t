@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
 BEGIN { plan tests => 1 }
 
 use Hex::Record;
